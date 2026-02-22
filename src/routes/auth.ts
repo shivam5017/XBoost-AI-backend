@@ -1,5 +1,5 @@
 import express from 'express';
-import db from '../../lib/db';
+import db from '../lib/db';
 import jwt from 'jsonwebtoken';
 import { hashPassword, comparePassword } from '../utils/hash';
 

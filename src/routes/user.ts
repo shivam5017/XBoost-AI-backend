@@ -1,5 +1,5 @@
 import express from 'express';
-import db from '../../lib/db';
+import db from '../lib/db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();

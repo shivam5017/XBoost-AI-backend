@@ -13,4 +13,3 @@ const db = globalForPrisma.prisma ||
 if (process.env.NODE_ENV !== "production")
     globalForPrisma.prisma = db;
 exports.default = db;
-//# sourceMappingURL=db.js.map
