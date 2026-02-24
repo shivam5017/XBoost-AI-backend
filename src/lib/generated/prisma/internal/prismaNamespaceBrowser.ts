@@ -52,8 +52,11 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
-  Session: 'Session',
-  UserSettings: 'UserSettings'
+  Reply: 'Reply',
+  DailyStats: 'DailyStats',
+  Streak: 'Streak',
+  Analytics: 'Analytics',
+  AIUsage: 'AIUsage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -75,12 +78,10 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
-  username: 'username',
   password: 'password',
-  name: 'name',
-  avatar: 'avatar',
-  accessToken: 'accessToken',
-  refreshToken: 'refreshToken',
+  username: 'username',
+  twitterHandle: 'twitterHandle',
+  dailyGoal: 'dailyGoal',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -88,36 +89,72 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
-export const SessionScalarFieldEnum = {
+export const ReplyScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
-  token: 'token',
-  expiresAt: 'expiresAt'
-} as const
-
-export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
-
-
-export const UserSettingsScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  provider: 'provider',
-  model: 'model',
-  apiKeyEncrypted: 'apiKeyEncrypted',
-  temperature: 'temperature',
-  maxTokens: 'maxTokens',
-  streaming: 'streaming',
+  tweetId: 'tweetId',
+  tweetText: 'tweetText',
+  replyText: 'replyText',
   tone: 'tone',
-  niche: 'niche',
-  format: 'format',
-  ctaStyle: 'ctaStyle',
-  emojiDensity: 'emojiDensity',
-  hookStrength: 'hookStrength',
-  engagementBoost: 'engagementBoost',
-  autoThreadSplit: 'autoThreadSplit'
+  posted: 'posted',
+  impressions: 'impressions',
+  createdAt: 'createdAt'
 } as const
 
-export type UserSettingsScalarFieldEnum = (typeof UserSettingsScalarFieldEnum)[keyof typeof UserSettingsScalarFieldEnum]
+export type ReplyScalarFieldEnum = (typeof ReplyScalarFieldEnum)[keyof typeof ReplyScalarFieldEnum]
+
+
+export const DailyStatsScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  date: 'date',
+  repliesGenerated: 'repliesGenerated',
+  repliesPosted: 'repliesPosted',
+  goalCompleted: 'goalCompleted',
+  engagementScore: 'engagementScore',
+  estimatedImpressions: 'estimatedImpressions'
+} as const
+
+export type DailyStatsScalarFieldEnum = (typeof DailyStatsScalarFieldEnum)[keyof typeof DailyStatsScalarFieldEnum]
+
+
+export const StreakScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  current: 'current',
+  longest: 'longest',
+  lastActiveDate: 'lastActiveDate',
+  updatedAt: 'updatedAt'
+} as const
+
+export type StreakScalarFieldEnum = (typeof StreakScalarFieldEnum)[keyof typeof StreakScalarFieldEnum]
+
+
+export const AnalyticsScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  period: 'period',
+  periodStart: 'periodStart',
+  totalReplies: 'totalReplies',
+  avgRepliesPerDay: 'avgRepliesPerDay',
+  consistencyScore: 'consistencyScore',
+  growthRating: 'growthRating',
+  estimatedImpressions: 'estimatedImpressions',
+  createdAt: 'createdAt'
+} as const
+
+export type AnalyticsScalarFieldEnum = (typeof AnalyticsScalarFieldEnum)[keyof typeof AnalyticsScalarFieldEnum]
+
+
+export const AIUsageScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  endpoint: 'endpoint',
+  tokens: 'tokens',
+  createdAt: 'createdAt'
+} as const
+
+export type AIUsageScalarFieldEnum = (typeof AIUsageScalarFieldEnum)[keyof typeof AIUsageScalarFieldEnum]
 
 
 export const SortOrder = {

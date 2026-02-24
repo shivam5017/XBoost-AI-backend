@@ -20,19 +20,27 @@ export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayloa
 
 export type AggregateUser = {
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
+}
+
+export type UserAvgAggregateOutputType = {
+  dailyGoal: number | null
+}
+
+export type UserSumAggregateOutputType = {
+  dailyGoal: number | null
 }
 
 export type UserMinAggregateOutputType = {
   id: string | null
   email: string | null
-  username: string | null
   password: string | null
-  name: string | null
-  avatar: string | null
-  accessToken: string | null
-  refreshToken: string | null
+  username: string | null
+  twitterHandle: string | null
+  dailyGoal: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -40,12 +48,10 @@ export type UserMinAggregateOutputType = {
 export type UserMaxAggregateOutputType = {
   id: string | null
   email: string | null
-  username: string | null
   password: string | null
-  name: string | null
-  avatar: string | null
-  accessToken: string | null
-  refreshToken: string | null
+  username: string | null
+  twitterHandle: string | null
+  dailyGoal: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -53,27 +59,31 @@ export type UserMaxAggregateOutputType = {
 export type UserCountAggregateOutputType = {
   id: number
   email: number
-  username: number
   password: number
-  name: number
-  avatar: number
-  accessToken: number
-  refreshToken: number
+  username: number
+  twitterHandle: number
+  dailyGoal: number
   createdAt: number
   updatedAt: number
   _all: number
 }
 
 
+export type UserAvgAggregateInputType = {
+  dailyGoal?: true
+}
+
+export type UserSumAggregateInputType = {
+  dailyGoal?: true
+}
+
 export type UserMinAggregateInputType = {
   id?: true
   email?: true
-  username?: true
   password?: true
-  name?: true
-  avatar?: true
-  accessToken?: true
-  refreshToken?: true
+  username?: true
+  twitterHandle?: true
+  dailyGoal?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -81,12 +91,10 @@ export type UserMinAggregateInputType = {
 export type UserMaxAggregateInputType = {
   id?: true
   email?: true
-  username?: true
   password?: true
-  name?: true
-  avatar?: true
-  accessToken?: true
-  refreshToken?: true
+  username?: true
+  twitterHandle?: true
+  dailyGoal?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -94,12 +102,10 @@ export type UserMaxAggregateInputType = {
 export type UserCountAggregateInputType = {
   id?: true
   email?: true
-  username?: true
   password?: true
-  name?: true
-  avatar?: true
-  accessToken?: true
-  refreshToken?: true
+  username?: true
+  twitterHandle?: true
+  dailyGoal?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -143,6 +149,18 @@ export type UserAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: UserAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: UserSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserMinAggregateInputType
@@ -173,22 +191,24 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: UserCountAggregateInputType | true
+  _avg?: UserAvgAggregateInputType
+  _sum?: UserSumAggregateInputType
   _min?: UserMinAggregateInputType
   _max?: UserMaxAggregateInputType
 }
 
 export type UserGroupByOutputType = {
   id: string
-  email: string | null
-  username: string
-  password: string | null
-  name: string
-  avatar: string | null
-  accessToken: string | null
-  refreshToken: string | null
+  email: string
+  password: string
+  username: string | null
+  twitterHandle: string | null
+  dailyGoal: number
   createdAt: Date
   updatedAt: Date
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
 }
@@ -213,32 +233,34 @@ export type UserWhereInput = {
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   id?: Prisma.StringFilter<"User"> | string
-  email?: Prisma.StringNullableFilter<"User"> | string | null
-  username?: Prisma.StringFilter<"User"> | string
-  password?: Prisma.StringNullableFilter<"User"> | string | null
-  name?: Prisma.StringFilter<"User"> | string
-  avatar?: Prisma.StringNullableFilter<"User"> | string | null
-  accessToken?: Prisma.StringNullableFilter<"User"> | string | null
-  refreshToken?: Prisma.StringNullableFilter<"User"> | string | null
+  email?: Prisma.StringFilter<"User"> | string
+  password?: Prisma.StringFilter<"User"> | string
+  username?: Prisma.StringNullableFilter<"User"> | string | null
+  twitterHandle?: Prisma.StringNullableFilter<"User"> | string | null
+  dailyGoal?: Prisma.IntFilter<"User"> | number
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
-  sessions?: Prisma.SessionListRelationFilter
-  settings?: Prisma.XOR<Prisma.UserSettingsNullableScalarRelationFilter, Prisma.UserSettingsWhereInput> | null
+  replies?: Prisma.ReplyListRelationFilter
+  dailyStats?: Prisma.DailyStatsListRelationFilter
+  streak?: Prisma.XOR<Prisma.StreakNullableScalarRelationFilter, Prisma.StreakWhereInput> | null
+  analytics?: Prisma.AnalyticsListRelationFilter
+  aiUsage?: Prisma.AIUsageListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  email?: Prisma.SortOrderInput | Prisma.SortOrder
-  username?: Prisma.SortOrder
-  password?: Prisma.SortOrderInput | Prisma.SortOrder
-  name?: Prisma.SortOrder
-  avatar?: Prisma.SortOrderInput | Prisma.SortOrder
-  accessToken?: Prisma.SortOrderInput | Prisma.SortOrder
-  refreshToken?: Prisma.SortOrderInput | Prisma.SortOrder
+  email?: Prisma.SortOrder
+  password?: Prisma.SortOrder
+  username?: Prisma.SortOrderInput | Prisma.SortOrder
+  twitterHandle?: Prisma.SortOrderInput | Prisma.SortOrder
+  dailyGoal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  sessions?: Prisma.SessionOrderByRelationAggregateInput
-  settings?: Prisma.UserSettingsOrderByWithRelationInput
+  replies?: Prisma.ReplyOrderByRelationAggregateInput
+  dailyStats?: Prisma.DailyStatsOrderByRelationAggregateInput
+  streak?: Prisma.StreakOrderByWithRelationInput
+  analytics?: Prisma.AnalyticsOrderByRelationAggregateInput
+  aiUsage?: Prisma.AIUsageOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -247,32 +269,33 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
-  username?: Prisma.StringFilter<"User"> | string
-  password?: Prisma.StringNullableFilter<"User"> | string | null
-  name?: Prisma.StringFilter<"User"> | string
-  avatar?: Prisma.StringNullableFilter<"User"> | string | null
-  accessToken?: Prisma.StringNullableFilter<"User"> | string | null
-  refreshToken?: Prisma.StringNullableFilter<"User"> | string | null
+  password?: Prisma.StringFilter<"User"> | string
+  username?: Prisma.StringNullableFilter<"User"> | string | null
+  twitterHandle?: Prisma.StringNullableFilter<"User"> | string | null
+  dailyGoal?: Prisma.IntFilter<"User"> | number
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
-  sessions?: Prisma.SessionListRelationFilter
-  settings?: Prisma.XOR<Prisma.UserSettingsNullableScalarRelationFilter, Prisma.UserSettingsWhereInput> | null
+  replies?: Prisma.ReplyListRelationFilter
+  dailyStats?: Prisma.DailyStatsListRelationFilter
+  streak?: Prisma.XOR<Prisma.StreakNullableScalarRelationFilter, Prisma.StreakWhereInput> | null
+  analytics?: Prisma.AnalyticsListRelationFilter
+  aiUsage?: Prisma.AIUsageListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  email?: Prisma.SortOrderInput | Prisma.SortOrder
-  username?: Prisma.SortOrder
-  password?: Prisma.SortOrderInput | Prisma.SortOrder
-  name?: Prisma.SortOrder
-  avatar?: Prisma.SortOrderInput | Prisma.SortOrder
-  accessToken?: Prisma.SortOrderInput | Prisma.SortOrder
-  refreshToken?: Prisma.SortOrderInput | Prisma.SortOrder
+  email?: Prisma.SortOrder
+  password?: Prisma.SortOrder
+  username?: Prisma.SortOrderInput | Prisma.SortOrder
+  twitterHandle?: Prisma.SortOrderInput | Prisma.SortOrder
+  dailyGoal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
+  _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
+  _sum?: Prisma.UserSumOrderByAggregateInput
 }
 
 export type UserScalarWhereWithAggregatesInput = {
@@ -280,112 +303,108 @@ export type UserScalarWhereWithAggregatesInput = {
   OR?: Prisma.UserScalarWhereWithAggregatesInput[]
   NOT?: Prisma.UserScalarWhereWithAggregatesInput | Prisma.UserScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"User"> | string
-  email?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
-  username?: Prisma.StringWithAggregatesFilter<"User"> | string
-  password?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
-  name?: Prisma.StringWithAggregatesFilter<"User"> | string
-  avatar?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
-  accessToken?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
-  refreshToken?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  email?: Prisma.StringWithAggregatesFilter<"User"> | string
+  password?: Prisma.StringWithAggregatesFilter<"User"> | string
+  username?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  twitterHandle?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  dailyGoal?: Prisma.IntWithAggregatesFilter<"User"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
 
 export type UserCreateInput = {
   id?: string
-  email?: string | null
-  username: string
-  password?: string | null
-  name: string
-  avatar?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
-  settings?: Prisma.UserSettingsCreateNestedOneWithoutUserInput
+  replies?: Prisma.ReplyCreateNestedManyWithoutUserInput
+  dailyStats?: Prisma.DailyStatsCreateNestedManyWithoutUserInput
+  streak?: Prisma.StreakCreateNestedOneWithoutUserInput
+  analytics?: Prisma.AnalyticsCreateNestedManyWithoutUserInput
+  aiUsage?: Prisma.AIUsageCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
   id?: string
-  email?: string | null
-  username: string
-  password?: string | null
-  name: string
-  avatar?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
-  settings?: Prisma.UserSettingsUncheckedCreateNestedOneWithoutUserInput
+  replies?: Prisma.ReplyUncheckedCreateNestedManyWithoutUserInput
+  dailyStats?: Prisma.DailyStatsUncheckedCreateNestedManyWithoutUserInput
+  streak?: Prisma.StreakUncheckedCreateNestedOneWithoutUserInput
+  analytics?: Prisma.AnalyticsUncheckedCreateNestedManyWithoutUserInput
+  aiUsage?: Prisma.AIUsageUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
-  settings?: Prisma.UserSettingsUpdateOneWithoutUserNestedInput
+  replies?: Prisma.ReplyUpdateManyWithoutUserNestedInput
+  dailyStats?: Prisma.DailyStatsUpdateManyWithoutUserNestedInput
+  streak?: Prisma.StreakUpdateOneWithoutUserNestedInput
+  analytics?: Prisma.AnalyticsUpdateManyWithoutUserNestedInput
+  aiUsage?: Prisma.AIUsageUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
-  settings?: Prisma.UserSettingsUncheckedUpdateOneWithoutUserNestedInput
+  replies?: Prisma.ReplyUncheckedUpdateManyWithoutUserNestedInput
+  dailyStats?: Prisma.DailyStatsUncheckedUpdateManyWithoutUserNestedInput
+  streak?: Prisma.StreakUncheckedUpdateOneWithoutUserNestedInput
+  analytics?: Prisma.AnalyticsUncheckedUpdateManyWithoutUserNestedInput
+  aiUsage?: Prisma.AIUsageUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
   id?: string
-  email?: string | null
-  username: string
-  password?: string | null
-  name: string
-  avatar?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
 
 export type UserUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -393,25 +412,25 @@ export type UserUncheckedUpdateManyInput = {
 export type UserCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
-  username?: Prisma.SortOrder
   password?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  avatar?: Prisma.SortOrder
-  accessToken?: Prisma.SortOrder
-  refreshToken?: Prisma.SortOrder
+  username?: Prisma.SortOrder
+  twitterHandle?: Prisma.SortOrder
+  dailyGoal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserAvgOrderByAggregateInput = {
+  dailyGoal?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
-  username?: Prisma.SortOrder
   password?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  avatar?: Prisma.SortOrder
-  accessToken?: Prisma.SortOrder
-  refreshToken?: Prisma.SortOrder
+  username?: Prisma.SortOrder
+  twitterHandle?: Prisma.SortOrder
+  dailyGoal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -419,14 +438,16 @@ export type UserMaxOrderByAggregateInput = {
 export type UserMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
-  username?: Prisma.SortOrder
   password?: Prisma.SortOrder
-  name?: Prisma.SortOrder
-  avatar?: Prisma.SortOrder
-  accessToken?: Prisma.SortOrder
-  refreshToken?: Prisma.SortOrder
+  username?: Prisma.SortOrder
+  twitterHandle?: Prisma.SortOrder
+  dailyGoal?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserSumOrderByAggregateInput = {
+  dailyGoal?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -442,180 +463,466 @@ export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
 }
 
+export type IntFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
 }
 
-export type UserCreateNestedOneWithoutSessionsInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutSessionsInput, Prisma.UserUncheckedCreateWithoutSessionsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSessionsInput
+export type UserCreateNestedOneWithoutRepliesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRepliesInput, Prisma.UserUncheckedCreateWithoutRepliesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRepliesInput
   connect?: Prisma.UserWhereUniqueInput
 }
 
-export type UserUpdateOneRequiredWithoutSessionsNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutSessionsInput, Prisma.UserUncheckedCreateWithoutSessionsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSessionsInput
-  upsert?: Prisma.UserUpsertWithoutSessionsInput
+export type UserUpdateOneRequiredWithoutRepliesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRepliesInput, Prisma.UserUncheckedCreateWithoutRepliesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRepliesInput
+  upsert?: Prisma.UserUpsertWithoutRepliesInput
   connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSessionsInput, Prisma.UserUpdateWithoutSessionsInput>, Prisma.UserUncheckedUpdateWithoutSessionsInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutRepliesInput, Prisma.UserUpdateWithoutRepliesInput>, Prisma.UserUncheckedUpdateWithoutRepliesInput>
 }
 
-export type UserCreateNestedOneWithoutSettingsInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutSettingsInput, Prisma.UserUncheckedCreateWithoutSettingsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSettingsInput
+export type UserCreateNestedOneWithoutDailyStatsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDailyStatsInput, Prisma.UserUncheckedCreateWithoutDailyStatsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDailyStatsInput
   connect?: Prisma.UserWhereUniqueInput
 }
 
-export type UserUpdateOneRequiredWithoutSettingsNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutSettingsInput, Prisma.UserUncheckedCreateWithoutSettingsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSettingsInput
-  upsert?: Prisma.UserUpsertWithoutSettingsInput
+export type UserUpdateOneRequiredWithoutDailyStatsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDailyStatsInput, Prisma.UserUncheckedCreateWithoutDailyStatsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDailyStatsInput
+  upsert?: Prisma.UserUpsertWithoutDailyStatsInput
   connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSettingsInput, Prisma.UserUpdateWithoutSettingsInput>, Prisma.UserUncheckedUpdateWithoutSettingsInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDailyStatsInput, Prisma.UserUpdateWithoutDailyStatsInput>, Prisma.UserUncheckedUpdateWithoutDailyStatsInput>
 }
 
-export type UserCreateWithoutSessionsInput = {
+export type UserCreateNestedOneWithoutStreakInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutStreakInput, Prisma.UserUncheckedCreateWithoutStreakInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutStreakInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutStreakNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutStreakInput, Prisma.UserUncheckedCreateWithoutStreakInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutStreakInput
+  upsert?: Prisma.UserUpsertWithoutStreakInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutStreakInput, Prisma.UserUpdateWithoutStreakInput>, Prisma.UserUncheckedUpdateWithoutStreakInput>
+}
+
+export type UserCreateNestedOneWithoutAnalyticsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAnalyticsInput, Prisma.UserUncheckedCreateWithoutAnalyticsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAnalyticsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutAnalyticsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAnalyticsInput, Prisma.UserUncheckedCreateWithoutAnalyticsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAnalyticsInput
+  upsert?: Prisma.UserUpsertWithoutAnalyticsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAnalyticsInput, Prisma.UserUpdateWithoutAnalyticsInput>, Prisma.UserUncheckedUpdateWithoutAnalyticsInput>
+}
+
+export type UserCreateNestedOneWithoutAiUsageInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAiUsageInput, Prisma.UserUncheckedCreateWithoutAiUsageInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAiUsageInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutAiUsageNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAiUsageInput, Prisma.UserUncheckedCreateWithoutAiUsageInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAiUsageInput
+  upsert?: Prisma.UserUpsertWithoutAiUsageInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAiUsageInput, Prisma.UserUpdateWithoutAiUsageInput>, Prisma.UserUncheckedUpdateWithoutAiUsageInput>
+}
+
+export type UserCreateWithoutRepliesInput = {
   id?: string
-  email?: string | null
-  username: string
-  password?: string | null
-  name: string
-  avatar?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  settings?: Prisma.UserSettingsCreateNestedOneWithoutUserInput
+  dailyStats?: Prisma.DailyStatsCreateNestedManyWithoutUserInput
+  streak?: Prisma.StreakCreateNestedOneWithoutUserInput
+  analytics?: Prisma.AnalyticsCreateNestedManyWithoutUserInput
+  aiUsage?: Prisma.AIUsageCreateNestedManyWithoutUserInput
 }
 
-export type UserUncheckedCreateWithoutSessionsInput = {
+export type UserUncheckedCreateWithoutRepliesInput = {
   id?: string
-  email?: string | null
-  username: string
-  password?: string | null
-  name: string
-  avatar?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  settings?: Prisma.UserSettingsUncheckedCreateNestedOneWithoutUserInput
+  dailyStats?: Prisma.DailyStatsUncheckedCreateNestedManyWithoutUserInput
+  streak?: Prisma.StreakUncheckedCreateNestedOneWithoutUserInput
+  analytics?: Prisma.AnalyticsUncheckedCreateNestedManyWithoutUserInput
+  aiUsage?: Prisma.AIUsageUncheckedCreateNestedManyWithoutUserInput
 }
 
-export type UserCreateOrConnectWithoutSessionsInput = {
+export type UserCreateOrConnectWithoutRepliesInput = {
   where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutSessionsInput, Prisma.UserUncheckedCreateWithoutSessionsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutRepliesInput, Prisma.UserUncheckedCreateWithoutRepliesInput>
 }
 
-export type UserUpsertWithoutSessionsInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutSessionsInput, Prisma.UserUncheckedUpdateWithoutSessionsInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutSessionsInput, Prisma.UserUncheckedCreateWithoutSessionsInput>
+export type UserUpsertWithoutRepliesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutRepliesInput, Prisma.UserUncheckedUpdateWithoutRepliesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutRepliesInput, Prisma.UserUncheckedCreateWithoutRepliesInput>
   where?: Prisma.UserWhereInput
 }
 
-export type UserUpdateToOneWithWhereWithoutSessionsInput = {
+export type UserUpdateToOneWithWhereWithoutRepliesInput = {
   where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutSessionsInput, Prisma.UserUncheckedUpdateWithoutSessionsInput>
+  data: Prisma.XOR<Prisma.UserUpdateWithoutRepliesInput, Prisma.UserUncheckedUpdateWithoutRepliesInput>
 }
 
-export type UserUpdateWithoutSessionsInput = {
+export type UserUpdateWithoutRepliesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  settings?: Prisma.UserSettingsUpdateOneWithoutUserNestedInput
+  dailyStats?: Prisma.DailyStatsUpdateManyWithoutUserNestedInput
+  streak?: Prisma.StreakUpdateOneWithoutUserNestedInput
+  analytics?: Prisma.AnalyticsUpdateManyWithoutUserNestedInput
+  aiUsage?: Prisma.AIUsageUpdateManyWithoutUserNestedInput
 }
 
-export type UserUncheckedUpdateWithoutSessionsInput = {
+export type UserUncheckedUpdateWithoutRepliesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  settings?: Prisma.UserSettingsUncheckedUpdateOneWithoutUserNestedInput
+  dailyStats?: Prisma.DailyStatsUncheckedUpdateManyWithoutUserNestedInput
+  streak?: Prisma.StreakUncheckedUpdateOneWithoutUserNestedInput
+  analytics?: Prisma.AnalyticsUncheckedUpdateManyWithoutUserNestedInput
+  aiUsage?: Prisma.AIUsageUncheckedUpdateManyWithoutUserNestedInput
 }
 
-export type UserCreateWithoutSettingsInput = {
+export type UserCreateWithoutDailyStatsInput = {
   id?: string
-  email?: string | null
-  username: string
-  password?: string | null
-  name: string
-  avatar?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  replies?: Prisma.ReplyCreateNestedManyWithoutUserInput
+  streak?: Prisma.StreakCreateNestedOneWithoutUserInput
+  analytics?: Prisma.AnalyticsCreateNestedManyWithoutUserInput
+  aiUsage?: Prisma.AIUsageCreateNestedManyWithoutUserInput
 }
 
-export type UserUncheckedCreateWithoutSettingsInput = {
+export type UserUncheckedCreateWithoutDailyStatsInput = {
   id?: string
-  email?: string | null
-  username: string
-  password?: string | null
-  name: string
-  avatar?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  replies?: Prisma.ReplyUncheckedCreateNestedManyWithoutUserInput
+  streak?: Prisma.StreakUncheckedCreateNestedOneWithoutUserInput
+  analytics?: Prisma.AnalyticsUncheckedCreateNestedManyWithoutUserInput
+  aiUsage?: Prisma.AIUsageUncheckedCreateNestedManyWithoutUserInput
 }
 
-export type UserCreateOrConnectWithoutSettingsInput = {
+export type UserCreateOrConnectWithoutDailyStatsInput = {
   where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutSettingsInput, Prisma.UserUncheckedCreateWithoutSettingsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDailyStatsInput, Prisma.UserUncheckedCreateWithoutDailyStatsInput>
 }
 
-export type UserUpsertWithoutSettingsInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutSettingsInput, Prisma.UserUncheckedUpdateWithoutSettingsInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutSettingsInput, Prisma.UserUncheckedCreateWithoutSettingsInput>
+export type UserUpsertWithoutDailyStatsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDailyStatsInput, Prisma.UserUncheckedUpdateWithoutDailyStatsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDailyStatsInput, Prisma.UserUncheckedCreateWithoutDailyStatsInput>
   where?: Prisma.UserWhereInput
 }
 
-export type UserUpdateToOneWithWhereWithoutSettingsInput = {
+export type UserUpdateToOneWithWhereWithoutDailyStatsInput = {
   where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutSettingsInput, Prisma.UserUncheckedUpdateWithoutSettingsInput>
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDailyStatsInput, Prisma.UserUncheckedUpdateWithoutDailyStatsInput>
 }
 
-export type UserUpdateWithoutSettingsInput = {
+export type UserUpdateWithoutDailyStatsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  replies?: Prisma.ReplyUpdateManyWithoutUserNestedInput
+  streak?: Prisma.StreakUpdateOneWithoutUserNestedInput
+  analytics?: Prisma.AnalyticsUpdateManyWithoutUserNestedInput
+  aiUsage?: Prisma.AIUsageUpdateManyWithoutUserNestedInput
 }
 
-export type UserUncheckedUpdateWithoutSettingsInput = {
+export type UserUncheckedUpdateWithoutDailyStatsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  replies?: Prisma.ReplyUncheckedUpdateManyWithoutUserNestedInput
+  streak?: Prisma.StreakUncheckedUpdateOneWithoutUserNestedInput
+  analytics?: Prisma.AnalyticsUncheckedUpdateManyWithoutUserNestedInput
+  aiUsage?: Prisma.AIUsageUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutStreakInput = {
+  id?: string
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  replies?: Prisma.ReplyCreateNestedManyWithoutUserInput
+  dailyStats?: Prisma.DailyStatsCreateNestedManyWithoutUserInput
+  analytics?: Prisma.AnalyticsCreateNestedManyWithoutUserInput
+  aiUsage?: Prisma.AIUsageCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutStreakInput = {
+  id?: string
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  replies?: Prisma.ReplyUncheckedCreateNestedManyWithoutUserInput
+  dailyStats?: Prisma.DailyStatsUncheckedCreateNestedManyWithoutUserInput
+  analytics?: Prisma.AnalyticsUncheckedCreateNestedManyWithoutUserInput
+  aiUsage?: Prisma.AIUsageUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutStreakInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutStreakInput, Prisma.UserUncheckedCreateWithoutStreakInput>
+}
+
+export type UserUpsertWithoutStreakInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutStreakInput, Prisma.UserUncheckedUpdateWithoutStreakInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutStreakInput, Prisma.UserUncheckedCreateWithoutStreakInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutStreakInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutStreakInput, Prisma.UserUncheckedUpdateWithoutStreakInput>
+}
+
+export type UserUpdateWithoutStreakInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  replies?: Prisma.ReplyUpdateManyWithoutUserNestedInput
+  dailyStats?: Prisma.DailyStatsUpdateManyWithoutUserNestedInput
+  analytics?: Prisma.AnalyticsUpdateManyWithoutUserNestedInput
+  aiUsage?: Prisma.AIUsageUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutStreakInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  replies?: Prisma.ReplyUncheckedUpdateManyWithoutUserNestedInput
+  dailyStats?: Prisma.DailyStatsUncheckedUpdateManyWithoutUserNestedInput
+  analytics?: Prisma.AnalyticsUncheckedUpdateManyWithoutUserNestedInput
+  aiUsage?: Prisma.AIUsageUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutAnalyticsInput = {
+  id?: string
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  replies?: Prisma.ReplyCreateNestedManyWithoutUserInput
+  dailyStats?: Prisma.DailyStatsCreateNestedManyWithoutUserInput
+  streak?: Prisma.StreakCreateNestedOneWithoutUserInput
+  aiUsage?: Prisma.AIUsageCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutAnalyticsInput = {
+  id?: string
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  replies?: Prisma.ReplyUncheckedCreateNestedManyWithoutUserInput
+  dailyStats?: Prisma.DailyStatsUncheckedCreateNestedManyWithoutUserInput
+  streak?: Prisma.StreakUncheckedCreateNestedOneWithoutUserInput
+  aiUsage?: Prisma.AIUsageUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutAnalyticsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutAnalyticsInput, Prisma.UserUncheckedCreateWithoutAnalyticsInput>
+}
+
+export type UserUpsertWithoutAnalyticsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutAnalyticsInput, Prisma.UserUncheckedUpdateWithoutAnalyticsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAnalyticsInput, Prisma.UserUncheckedCreateWithoutAnalyticsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutAnalyticsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutAnalyticsInput, Prisma.UserUncheckedUpdateWithoutAnalyticsInput>
+}
+
+export type UserUpdateWithoutAnalyticsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  replies?: Prisma.ReplyUpdateManyWithoutUserNestedInput
+  dailyStats?: Prisma.DailyStatsUpdateManyWithoutUserNestedInput
+  streak?: Prisma.StreakUpdateOneWithoutUserNestedInput
+  aiUsage?: Prisma.AIUsageUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutAnalyticsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  replies?: Prisma.ReplyUncheckedUpdateManyWithoutUserNestedInput
+  dailyStats?: Prisma.DailyStatsUncheckedUpdateManyWithoutUserNestedInput
+  streak?: Prisma.StreakUncheckedUpdateOneWithoutUserNestedInput
+  aiUsage?: Prisma.AIUsageUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutAiUsageInput = {
+  id?: string
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  replies?: Prisma.ReplyCreateNestedManyWithoutUserInput
+  dailyStats?: Prisma.DailyStatsCreateNestedManyWithoutUserInput
+  streak?: Prisma.StreakCreateNestedOneWithoutUserInput
+  analytics?: Prisma.AnalyticsCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutAiUsageInput = {
+  id?: string
+  email: string
+  password: string
+  username?: string | null
+  twitterHandle?: string | null
+  dailyGoal?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  replies?: Prisma.ReplyUncheckedCreateNestedManyWithoutUserInput
+  dailyStats?: Prisma.DailyStatsUncheckedCreateNestedManyWithoutUserInput
+  streak?: Prisma.StreakUncheckedCreateNestedOneWithoutUserInput
+  analytics?: Prisma.AnalyticsUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutAiUsageInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutAiUsageInput, Prisma.UserUncheckedCreateWithoutAiUsageInput>
+}
+
+export type UserUpsertWithoutAiUsageInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutAiUsageInput, Prisma.UserUncheckedUpdateWithoutAiUsageInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAiUsageInput, Prisma.UserUncheckedCreateWithoutAiUsageInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutAiUsageInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutAiUsageInput, Prisma.UserUncheckedUpdateWithoutAiUsageInput>
+}
+
+export type UserUpdateWithoutAiUsageInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  replies?: Prisma.ReplyUpdateManyWithoutUserNestedInput
+  dailyStats?: Prisma.DailyStatsUpdateManyWithoutUserNestedInput
+  streak?: Prisma.StreakUpdateOneWithoutUserNestedInput
+  analytics?: Prisma.AnalyticsUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutAiUsageInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  twitterHandle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dailyGoal?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  replies?: Prisma.ReplyUncheckedUpdateManyWithoutUserNestedInput
+  dailyStats?: Prisma.DailyStatsUncheckedUpdateManyWithoutUserNestedInput
+  streak?: Prisma.StreakUncheckedUpdateOneWithoutUserNestedInput
+  analytics?: Prisma.AnalyticsUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -624,11 +931,17 @@ export type UserUncheckedUpdateWithoutSettingsInput = {
  */
 
 export type UserCountOutputType = {
-  sessions: number
+  replies: number
+  dailyStats: number
+  analytics: number
+  aiUsage: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  sessions?: boolean | UserCountOutputTypeCountSessionsArgs
+  replies?: boolean | UserCountOutputTypeCountRepliesArgs
+  dailyStats?: boolean | UserCountOutputTypeCountDailyStatsArgs
+  analytics?: boolean | UserCountOutputTypeCountAnalyticsArgs
+  aiUsage?: boolean | UserCountOutputTypeCountAiUsageArgs
 }
 
 /**
@@ -644,36 +957,56 @@ export type UserCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
 /**
  * UserCountOutputType without action
  */
-export type UserCountOutputTypeCountSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.SessionWhereInput
+export type UserCountOutputTypeCountRepliesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ReplyWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDailyStatsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DailyStatsWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountAnalyticsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AnalyticsWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountAiUsageArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AIUsageWhereInput
 }
 
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   email?: boolean
-  username?: boolean
   password?: boolean
-  name?: boolean
-  avatar?: boolean
-  accessToken?: boolean
-  refreshToken?: boolean
+  username?: boolean
+  twitterHandle?: boolean
+  dailyGoal?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
-  settings?: boolean | Prisma.User$settingsArgs<ExtArgs>
+  replies?: boolean | Prisma.User$repliesArgs<ExtArgs>
+  dailyStats?: boolean | Prisma.User$dailyStatsArgs<ExtArgs>
+  streak?: boolean | Prisma.User$streakArgs<ExtArgs>
+  analytics?: boolean | Prisma.User$analyticsArgs<ExtArgs>
+  aiUsage?: boolean | Prisma.User$aiUsageArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   email?: boolean
-  username?: boolean
   password?: boolean
-  name?: boolean
-  avatar?: boolean
-  accessToken?: boolean
-  refreshToken?: boolean
+  username?: boolean
+  twitterHandle?: boolean
+  dailyGoal?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -681,12 +1014,10 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   email?: boolean
-  username?: boolean
   password?: boolean
-  name?: boolean
-  avatar?: boolean
-  accessToken?: boolean
-  refreshToken?: boolean
+  username?: boolean
+  twitterHandle?: boolean
+  dailyGoal?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -694,20 +1025,21 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
 export type UserSelectScalar = {
   id?: boolean
   email?: boolean
-  username?: boolean
   password?: boolean
-  name?: boolean
-  avatar?: boolean
-  accessToken?: boolean
-  refreshToken?: boolean
+  username?: boolean
+  twitterHandle?: boolean
+  dailyGoal?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "username" | "password" | "name" | "avatar" | "accessToken" | "refreshToken" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "password" | "username" | "twitterHandle" | "dailyGoal" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
-  settings?: boolean | Prisma.User$settingsArgs<ExtArgs>
+  replies?: boolean | Prisma.User$repliesArgs<ExtArgs>
+  dailyStats?: boolean | Prisma.User$dailyStatsArgs<ExtArgs>
+  streak?: boolean | Prisma.User$streakArgs<ExtArgs>
+  analytics?: boolean | Prisma.User$analyticsArgs<ExtArgs>
+  aiUsage?: boolean | Prisma.User$aiUsageArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -716,18 +1048,19 @@ export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
   objects: {
-    sessions: Prisma.$SessionPayload<ExtArgs>[]
-    settings: Prisma.$UserSettingsPayload<ExtArgs> | null
+    replies: Prisma.$ReplyPayload<ExtArgs>[]
+    dailyStats: Prisma.$DailyStatsPayload<ExtArgs>[]
+    streak: Prisma.$StreakPayload<ExtArgs> | null
+    analytics: Prisma.$AnalyticsPayload<ExtArgs>[]
+    aiUsage: Prisma.$AIUsagePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    email: string | null
-    username: string
-    password: string | null
-    name: string
-    avatar: string | null
-    accessToken: string | null
-    refreshToken: string | null
+    email: string
+    password: string
+    username: string | null
+    twitterHandle: string | null
+    dailyGoal: number
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["user"]>
@@ -1124,8 +1457,11 @@ readonly fields: UserFieldRefs;
  */
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  sessions<T extends Prisma.User$sessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  settings<T extends Prisma.User$settingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$settingsArgs<ExtArgs>>): Prisma.Prisma__UserSettingsClient<runtime.Types.Result.GetResult<Prisma.$UserSettingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  replies<T extends Prisma.User$repliesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$repliesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReplyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  dailyStats<T extends Prisma.User$dailyStatsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$dailyStatsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DailyStatsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  streak<T extends Prisma.User$streakArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$streakArgs<ExtArgs>>): Prisma.Prisma__StreakClient<runtime.Types.Result.GetResult<Prisma.$StreakPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  analytics<T extends Prisma.User$analyticsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$analyticsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AnalyticsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  aiUsage<T extends Prisma.User$aiUsageArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$aiUsageArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AIUsagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1157,12 +1493,10 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
 export interface UserFieldRefs {
   readonly id: Prisma.FieldRef<"User", 'String'>
   readonly email: Prisma.FieldRef<"User", 'String'>
-  readonly username: Prisma.FieldRef<"User", 'String'>
   readonly password: Prisma.FieldRef<"User", 'String'>
-  readonly name: Prisma.FieldRef<"User", 'String'>
-  readonly avatar: Prisma.FieldRef<"User", 'String'>
-  readonly accessToken: Prisma.FieldRef<"User", 'String'>
-  readonly refreshToken: Prisma.FieldRef<"User", 'String'>
+  readonly username: Prisma.FieldRef<"User", 'String'>
+  readonly twitterHandle: Prisma.FieldRef<"User", 'String'>
+  readonly dailyGoal: Prisma.FieldRef<"User", 'Int'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
 }
@@ -1553,46 +1887,118 @@ export type UserDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
 }
 
 /**
- * User.sessions
+ * User.replies
  */
-export type User$sessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type User$repliesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Session
+   * Select specific fields to fetch from the Reply
    */
-  select?: Prisma.SessionSelect<ExtArgs> | null
+  select?: Prisma.ReplySelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Session
+   * Omit specific fields from the Reply
    */
-  omit?: Prisma.SessionOmit<ExtArgs> | null
+  omit?: Prisma.ReplyOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.SessionInclude<ExtArgs> | null
-  where?: Prisma.SessionWhereInput
-  orderBy?: Prisma.SessionOrderByWithRelationInput | Prisma.SessionOrderByWithRelationInput[]
-  cursor?: Prisma.SessionWhereUniqueInput
+  include?: Prisma.ReplyInclude<ExtArgs> | null
+  where?: Prisma.ReplyWhereInput
+  orderBy?: Prisma.ReplyOrderByWithRelationInput | Prisma.ReplyOrderByWithRelationInput[]
+  cursor?: Prisma.ReplyWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.SessionScalarFieldEnum | Prisma.SessionScalarFieldEnum[]
+  distinct?: Prisma.ReplyScalarFieldEnum | Prisma.ReplyScalarFieldEnum[]
 }
 
 /**
- * User.settings
+ * User.dailyStats
  */
-export type User$settingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type User$dailyStatsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the UserSettings
+   * Select specific fields to fetch from the DailyStats
    */
-  select?: Prisma.UserSettingsSelect<ExtArgs> | null
+  select?: Prisma.DailyStatsSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the UserSettings
+   * Omit specific fields from the DailyStats
    */
-  omit?: Prisma.UserSettingsOmit<ExtArgs> | null
+  omit?: Prisma.DailyStatsOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.UserSettingsInclude<ExtArgs> | null
-  where?: Prisma.UserSettingsWhereInput
+  include?: Prisma.DailyStatsInclude<ExtArgs> | null
+  where?: Prisma.DailyStatsWhereInput
+  orderBy?: Prisma.DailyStatsOrderByWithRelationInput | Prisma.DailyStatsOrderByWithRelationInput[]
+  cursor?: Prisma.DailyStatsWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DailyStatsScalarFieldEnum | Prisma.DailyStatsScalarFieldEnum[]
+}
+
+/**
+ * User.streak
+ */
+export type User$streakArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Streak
+   */
+  select?: Prisma.StreakSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Streak
+   */
+  omit?: Prisma.StreakOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.StreakInclude<ExtArgs> | null
+  where?: Prisma.StreakWhereInput
+}
+
+/**
+ * User.analytics
+ */
+export type User$analyticsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Analytics
+   */
+  select?: Prisma.AnalyticsSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Analytics
+   */
+  omit?: Prisma.AnalyticsOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AnalyticsInclude<ExtArgs> | null
+  where?: Prisma.AnalyticsWhereInput
+  orderBy?: Prisma.AnalyticsOrderByWithRelationInput | Prisma.AnalyticsOrderByWithRelationInput[]
+  cursor?: Prisma.AnalyticsWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AnalyticsScalarFieldEnum | Prisma.AnalyticsScalarFieldEnum[]
+}
+
+/**
+ * User.aiUsage
+ */
+export type User$aiUsageArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AIUsage
+   */
+  select?: Prisma.AIUsageSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AIUsage
+   */
+  omit?: Prisma.AIUsageOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AIUsageInclude<ExtArgs> | null
+  where?: Prisma.AIUsageWhereInput
+  orderBy?: Prisma.AIUsageOrderByWithRelationInput | Prisma.AIUsageOrderByWithRelationInput[]
+  cursor?: Prisma.AIUsageWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AIUsageScalarFieldEnum | Prisma.AIUsageScalarFieldEnum[]
 }
 
 /**

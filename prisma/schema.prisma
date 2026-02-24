@@ -10,51 +10,95 @@ datasource db {
 
 }
 
+
 model User {
-  id           String   @id @default(cuid())
-  email        String?  @unique
-  username     String
-  password     String? 
-  name         String
-  avatar       String?
-  accessToken  String?
-  refreshToken String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  sessions     Session[] 
-   settings     UserSettings?
+  id            String      @id @default(cuid())
+  email         String      @unique
+  password      String
+  username      String?
+  twitterHandle String?
+  dailyGoal     Int         @default(5)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  replies     Reply[]
+  dailyStats  DailyStats[]
+  streak      Streak?
+  analytics   Analytics[]
+  aiUsage     AIUsage[]
+
+  @@index([email])
 }
 
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-
-model UserSettings {
-  id              String  @id @default(uuid())
-  userId          String  @unique
-
-  provider        String
-  model           String
-  apiKeyEncrypted String
-
-  temperature     Float   @default(0.7)
-  maxTokens       Int     @default(500)
-  streaming       Boolean @default(true)
-
-  tone            String
-  niche           String
-  format          String
-  ctaStyle        String
-
-  emojiDensity    String
-  hookStrength    String
-  engagementBoost Boolean @default(false)
-  autoThreadSplit Boolean @default(false)
+model Reply {
+  id          String   @id @default(cuid())
+  userId      String
+  tweetId     String?
+  tweetText   String
+  replyText   String
+  tone        String   @default("smart")
+  posted      Boolean  @default(false)
+  impressions Int      @default(0)
+  createdAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model DailyStats {
+  id                   String   @id @default(cuid())
+  userId               String
+  date                 DateTime @default(now())
+  repliesGenerated     Int      @default(0)
+  repliesPosted        Int      @default(0)
+  goalCompleted        Boolean  @default(false)
+  engagementScore      Float    @default(0)
+  estimatedImpressions Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+model Streak {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  current        Int       @default(0)
+  longest        Int       @default(0)
+  lastActiveDate DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Analytics {
+  id                   String   @id @default(cuid())
+  userId               String
+  period               String
+  periodStart          DateTime
+  totalReplies         Int      @default(0)
+  avgRepliesPerDay     Float    @default(0)
+  consistencyScore     Float    @default(0)
+  growthRating         String   @default("Beginner")
+  estimatedImpressions Int      @default(0)
+  createdAt            DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, period])
+}
+
+model AIUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String
+  tokens    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

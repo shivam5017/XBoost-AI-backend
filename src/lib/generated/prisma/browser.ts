@@ -23,12 +23,27 @@ export * from './enums';
  */
 export type User = Prisma.UserModel
 /**
- * Model Session
+ * Model Reply
  * 
  */
-export type Session = Prisma.SessionModel
+export type Reply = Prisma.ReplyModel
 /**
- * Model UserSettings
+ * Model DailyStats
  * 
  */
-export type UserSettings = Prisma.UserSettingsModel
+export type DailyStats = Prisma.DailyStatsModel
+/**
+ * Model Streak
+ * 
+ */
+export type Streak = Prisma.StreakModel
+/**
+ * Model Analytics
+ * 
+ */
+export type Analytics = Prisma.AnalyticsModel
+/**
+ * Model AIUsage
+ * 
+ */
+export type AIUsage = Prisma.AIUsageModel

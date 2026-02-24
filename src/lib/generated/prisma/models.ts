@@ -9,6 +9,9 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/User'
-export type * from './models/Session'
-export type * from './models/UserSettings'
+export type * from './models/Reply'
+export type * from './models/DailyStats'
+export type * from './models/Streak'
+export type * from './models/Analytics'
+export type * from './models/AIUsage'
 export type * from './commonInputTypes'
