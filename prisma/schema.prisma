@@ -2,7 +2,7 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+    output   = "../src/lib/generated/prisma"
 }
 
 datasource db {
@@ -22,6 +22,7 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   sessions     Session[] 
+   settings     UserSettings?
 }
 
 model Session {
@@ -30,4 +31,30 @@ model Session {
   token     String   @unique
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id])
+}
+
+
+model UserSettings {
+  id              String  @id @default(uuid())
+  userId          String  @unique
+
+  provider        String
+  model           String
+  apiKeyEncrypted String
+
+  temperature     Float   @default(0.7)
+  maxTokens       Int     @default(500)
+  streaming       Boolean @default(true)
+
+  tone            String
+  niche           String
+  format          String
+  ctaStyle        String
+
+  emojiDensity    String
+  hookStrength    String
+  engagementBoost Boolean @default(false)
+  autoThreadSplit Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

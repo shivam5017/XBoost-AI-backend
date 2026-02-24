@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("./generated/prisma/client");
+const client_1 = require("../lib/generated/prisma/client");
 const adapter_pg_1 = require("@prisma/adapter-pg");
 const globalForPrisma = global;
 const adapter = new adapter_pg_1.PrismaPg({
