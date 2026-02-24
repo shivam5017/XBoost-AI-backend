@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
+import settingsRoutes from "./routes/settings"
+import generateRoutes from "./routes/generate"
 
 dotenv.config();
 
@@ -19,6 +21,8 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/generate', generateRoutes);
 
 app.get('/', (req, res) => res.send('Backend running'));
 
