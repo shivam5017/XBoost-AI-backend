@@ -90,7 +90,7 @@ async function updateDailyStats(
 // ── POST /ai/reply ────────────────────────────────────────────────────────────
 // ── POST /ai/reply ────────────────────────────────────────────────────────────
 export async function generateReply(req: AuthRequest, res: Response): Promise<void> {
-  const { tweetText, tone = 'smart', tweetId, wordCount = 50, templateId } = req.body;
+  const { tweetText, tone = 'smart', tweetId, wordCount = 50, templateId, customPrompt } = req.body;
   if (!tweetText) { res.status(400).json({ error: 'tweetText required' }); return; }
 
   const userApiKey = await getUserApiKey(req.userId!);
@@ -98,7 +98,7 @@ export async function generateReply(req: AuthRequest, res: Response): Promise<vo
   let reply: string;
   let tokens: number;
   try {
-    ({ reply, tokens } = await AIService.generateReply(tweetText, tone, userApiKey, wordCount, templateId));
+    ({ reply, tokens } = await AIService.generateReply(tweetText, tone, userApiKey, wordCount, templateId, customPrompt));
   } catch (err: any) {
     console.error('[/ai/reply] AIService error:', err.message);
     res.status(400).json({ error: err.message || 'Failed to generate reply' });
@@ -168,7 +168,7 @@ export async function analyzeTweet(req: AuthRequest, res: Response): Promise<voi
 // ── POST /ai/create ───────────────────────────────────────────────────────────
 // ── POST /ai/create ───────────────────────────────────────────────────────────
 export async function createTweet(req: AuthRequest, res: Response): Promise<void> {
-  const { topic, tone = 'smart', wordCount = 50, templateId } = req.body;
+  const { topic, tone = 'smart', wordCount = 50, templateId, customPrompt } = req.body;
   if (!topic) { res.status(400).json({ error: 'topic required' }); return; }
 
   const userApiKey = await getUserApiKey(req.userId!);
@@ -176,7 +176,7 @@ export async function createTweet(req: AuthRequest, res: Response): Promise<void
   let tweet: string;
   let tokens: number;
   try {
-    ({ tweet, tokens } = await AIService.createTweet(topic, tone, userApiKey, wordCount, templateId));
+    ({ tweet, tokens } = await AIService.createTweet(topic, tone, userApiKey, wordCount, templateId, customPrompt));
   } catch (err: any) {
     console.error('[/ai/create] AIService error:', err.message);
     res.status(400).json({ error: err.message || 'Failed to create tweet' });
@@ -221,7 +221,7 @@ export async function createTweet(req: AuthRequest, res: Response): Promise<void
 
 // ── POST /ai/rewrite ──────────────────────────────────────────────────────────
 export async function rewriteTweet(req: AuthRequest, res: Response): Promise<void> {
-  const { draftText, tone = 'smart', wordCount = 50, templateId } = req.body;
+  const { draftText, tone = 'smart', wordCount = 50, templateId, customPrompt } = req.body;
   if (!draftText) { res.status(400).json({ error: 'draftText required' }); return; }
 
   const userApiKey = await getUserApiKey(req.userId!);
@@ -229,7 +229,7 @@ export async function rewriteTweet(req: AuthRequest, res: Response): Promise<voi
   let rewrite: string;
   let tokens: number;
   try {
-    ({ rewrite, tokens } = await AIService.rewriteTweet(draftText, tone, userApiKey, wordCount, templateId));
+    ({ rewrite, tokens } = await AIService.rewriteTweet(draftText, tone, userApiKey, wordCount, templateId, customPrompt));
   } catch (err: any) {
     console.error('[/ai/rewrite] AIService error:', err.message);
     res.status(400).json({ error: err.message || 'Failed to rewrite tweet' });

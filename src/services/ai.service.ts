@@ -50,6 +50,7 @@ Quality bar:
 - Avoid these openers unless context truly requires them:
   "Great point", "I agree", "This!", "Absolutely", "Couldn't agree more".
 - Keep it safe for work and policy-compliant.
+- Prioritize novelty and angle diversity. Avoid repeating common phrasing.
 `;
 
 function buildGenerationPrompt(
@@ -57,11 +58,12 @@ function buildGenerationPrompt(
   toneInstruction: string,
   lengthInstruction: string,
   templateInstruction: string,
+  customPrompt: string,
 ): string {
   return `${objective}
 
 Tone: ${toneInstruction}
-Length: ${lengthInstruction}${templateInstruction}
+Length: ${lengthInstruction}${templateInstruction}${customPrompt}
 
 ${SYSTEM_GUARDRAILS}
 
@@ -78,6 +80,7 @@ export async function generateReply(
   userApiKey?: string | null,
   wordCount = 50,
   templateId?: string,
+  userPrompt?: string,
 ): Promise<{ reply: string; tokens: number }> {
   const openai = getClient(userApiKey);
   const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
@@ -85,10 +88,16 @@ export async function generateReply(
   const templateInstruction = templateId && TEMPLATES[templateId]
     ? `\nTemplate: ${TEMPLATES[templateId].instruction}`
     : '';
+  const customPrompt = userPrompt?.trim()
+    ? `\nUser preference: ${userPrompt.trim()}`
+    : "";
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     max_tokens: wordCountToTokens(wordCount),
+    temperature: 0.92,
+    frequency_penalty: 0.35,
+    presence_penalty: 0.45,
     messages: [
       {
         role: 'system',
@@ -102,6 +111,7 @@ Context rules:
           toneInstruction,
           lengthInstruction,
           templateInstruction,
+          customPrompt,
         ),
       },
       {
@@ -157,6 +167,7 @@ export async function createTweet(
   userApiKey?: string | null,
   wordCount = 50,
   templateId?: string,
+  userPrompt?: string,
 ): Promise<{ tweet: string; tokens: number }> {
   const openai = getClient(userApiKey);
   const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
@@ -164,10 +175,16 @@ export async function createTweet(
   const templateInstruction = templateId && TEMPLATES[templateId]
     ? `\nTemplate: ${TEMPLATES[templateId].instruction}`
     : '';
+  const customPrompt = userPrompt?.trim()
+    ? `\nUser preference: ${userPrompt.trim()}`
+    : "";
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     max_tokens: wordCountToTokens(wordCount),
+    temperature: 0.95,
+    frequency_penalty: 0.4,
+    presence_penalty: 0.5,
     messages: [
       {
         role: 'system',
@@ -182,6 +199,7 @@ Content rules:
           toneInstruction,
           lengthInstruction,
           templateInstruction,
+          customPrompt,
         ),
       },
       { role: 'user', content: `Topic: ${topic}` },
@@ -199,6 +217,7 @@ export async function rewriteTweet(
   userApiKey?: string | null,
   wordCount = 50,
   templateId?: string,
+  userPrompt?: string,
 ): Promise<{ rewrite: string; tokens: number }> {
   const openai = getClient(userApiKey);
   const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
@@ -206,10 +225,16 @@ export async function rewriteTweet(
   const templateInstruction = templateId && TEMPLATES[templateId]
     ? `\nTemplate: ${TEMPLATES[templateId].instruction}`
     : '';
+  const customPrompt = userPrompt?.trim()
+    ? `\nUser preference: ${userPrompt.trim()}`
+    : "";
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     max_tokens: wordCountToTokens(wordCount),
+    temperature: 0.88,
+    frequency_penalty: 0.28,
+    presence_penalty: 0.34,
     messages: [
       {
         role: 'system',
@@ -224,6 +249,7 @@ Rewrite rules:
           toneInstruction,
           lengthInstruction,
           templateInstruction,
+          customPrompt,
         ),
       },
       { role: 'user', content: `Draft: "${draftText}"` },

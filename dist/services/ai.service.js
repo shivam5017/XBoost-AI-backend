@@ -71,12 +71,13 @@ Quality bar:
 - Avoid these openers unless context truly requires them:
   "Great point", "I agree", "This!", "Absolutely", "Couldn't agree more".
 - Keep it safe for work and policy-compliant.
+- Prioritize novelty and angle diversity. Avoid repeating common phrasing.
 `;
-function buildGenerationPrompt(objective, toneInstruction, lengthInstruction, templateInstruction) {
+function buildGenerationPrompt(objective, toneInstruction, lengthInstruction, templateInstruction, customPrompt) {
     return `${objective}
 
 Tone: ${toneInstruction}
-Length: ${lengthInstruction}${templateInstruction}
+Length: ${lengthInstruction}${templateInstruction}${customPrompt}
 
 ${SYSTEM_GUARDRAILS}
 
@@ -86,16 +87,22 @@ Output constraints:
 - No meta commentary.`;
 }
 // ── generateReply — responds to a specific tweet ──────────────────────────────
-async function generateReply(tweetText, tone, userApiKey, wordCount = 50, templateId) {
+async function generateReply(tweetText, tone, userApiKey, wordCount = 50, templateId, userPrompt) {
     const openai = getClient(userApiKey);
     const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
     const lengthInstruction = buildLengthInstruction(wordCount);
     const templateInstruction = templateId && exports.TEMPLATES[templateId]
         ? `\nTemplate: ${exports.TEMPLATES[templateId].instruction}`
         : '';
+    const customPrompt = userPrompt?.trim()
+        ? `\nUser preference: ${userPrompt.trim()}`
+        : "";
     const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         max_tokens: wordCountToTokens(wordCount),
+        temperature: 0.92,
+        frequency_penalty: 0.35,
+        presence_penalty: 0.45,
         messages: [
             {
                 role: 'system',
@@ -104,7 +111,7 @@ async function generateReply(tweetText, tone, userApiKey, wordCount = 50, templa
 Context rules:
 - Must reference the specific tweet context, not a generic reply.
 - Under 280 characters unless template is thread hook.
-- No hashtags unless essential.`, toneInstruction, lengthInstruction, templateInstruction),
+- No hashtags unless essential.`, toneInstruction, lengthInstruction, templateInstruction, customPrompt),
             },
             {
                 role: 'user',
@@ -145,16 +152,22 @@ async function analyzeTweet(tweetText, userApiKey) {
     return { analysis, tokens: completion.usage?.total_tokens || 0 };
 }
 // ── createTweet — original tweet on a topic ───────────────────────────────────
-async function createTweet(topic, tone, userApiKey, wordCount = 50, templateId) {
+async function createTweet(topic, tone, userApiKey, wordCount = 50, templateId, userPrompt) {
     const openai = getClient(userApiKey);
     const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
     const lengthInstruction = buildLengthInstruction(wordCount);
     const templateInstruction = templateId && exports.TEMPLATES[templateId]
         ? `\nTemplate: ${exports.TEMPLATES[templateId].instruction}`
         : '';
+    const customPrompt = userPrompt?.trim()
+        ? `\nUser preference: ${userPrompt.trim()}`
+        : "";
     const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         max_tokens: wordCountToTokens(wordCount),
+        temperature: 0.95,
+        frequency_penalty: 0.4,
+        presence_penalty: 0.5,
         messages: [
             {
                 role: 'system',
@@ -164,7 +177,7 @@ Content rules:
 - Start with a hook that earns attention in first 8-12 words.
 - Deliver one core insight, opinion, or practical takeaway.
 - No hashtag spam (max 1 if relevant).
-- Under 280 characters unless template is thread hook.`, toneInstruction, lengthInstruction, templateInstruction),
+- Under 280 characters unless template is thread hook.`, toneInstruction, lengthInstruction, templateInstruction, customPrompt),
             },
             { role: 'user', content: `Topic: ${topic}` },
         ],
@@ -173,16 +186,22 @@ Content rules:
     return { tweet, tokens: completion.usage?.total_tokens || 0 };
 }
 // ── rewriteTweet ──────────────────────────────────────────────────────────────
-async function rewriteTweet(draftText, tone, userApiKey, wordCount = 50, templateId) {
+async function rewriteTweet(draftText, tone, userApiKey, wordCount = 50, templateId, userPrompt) {
     const openai = getClient(userApiKey);
     const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
     const lengthInstruction = buildLengthInstruction(wordCount);
     const templateInstruction = templateId && exports.TEMPLATES[templateId]
         ? `\nTemplate: ${exports.TEMPLATES[templateId].instruction}`
         : '';
+    const customPrompt = userPrompt?.trim()
+        ? `\nUser preference: ${userPrompt.trim()}`
+        : "";
     const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         max_tokens: wordCountToTokens(wordCount),
+        temperature: 0.88,
+        frequency_penalty: 0.28,
+        presence_penalty: 0.34,
         messages: [
             {
                 role: 'system',
@@ -192,7 +211,7 @@ Rewrite rules:
 - Keep the same intent, sharpen the framing.
 - Improve hook clarity and pacing.
 - Remove filler and weak qualifiers.
-- Under 280 characters unless template is thread hook.`, toneInstruction, lengthInstruction, templateInstruction),
+- Under 280 characters unless template is thread hook.`, toneInstruction, lengthInstruction, templateInstruction, customPrompt),
             },
             { role: 'user', content: `Draft: "${draftText}"` },
         ],
