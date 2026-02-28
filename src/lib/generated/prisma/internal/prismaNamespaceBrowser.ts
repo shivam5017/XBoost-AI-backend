@@ -56,7 +56,10 @@ export const ModelName = {
   DailyStats: 'DailyStats',
   Streak: 'Streak',
   Analytics: 'Analytics',
-  AIUsage: 'AIUsage'
+  AIUsage: 'AIUsage',
+  Subscription: 'Subscription',
+  DailyUsage: 'DailyUsage',
+  Payment: 'Payment'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -77,13 +80,14 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const UserScalarFieldEnum = {
   id: 'id',
+  username: 'username',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
   email: 'email',
   password: 'password',
-  username: 'username',
-  twitterHandle: 'twitterHandle',
   dailyGoal: 'dailyGoal',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  twitterHandle: 'twitterHandle',
+  openaiKey: 'openaiKey'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -155,6 +159,54 @@ export const AIUsageScalarFieldEnum = {
 } as const
 
 export type AIUsageScalarFieldEnum = (typeof AIUsageScalarFieldEnum)[keyof typeof AIUsageScalarFieldEnum]
+
+
+export const SubscriptionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  planId: 'planId',
+  status: 'status',
+  dodoCustomerId: 'dodoCustomerId',
+  dodoSubscriptionId: 'dodoSubscriptionId',
+  dodoProductId: 'dodoProductId',
+  currentPeriodStart: 'currentPeriodStart',
+  currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+  gracePeriodEnds: 'gracePeriodEnds',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
+
+
+export const DailyUsageScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  date: 'date',
+  repliesCount: 'repliesCount',
+  tweetsCount: 'tweetsCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DailyUsageScalarFieldEnum = (typeof DailyUsageScalarFieldEnum)[keyof typeof DailyUsageScalarFieldEnum]
+
+
+export const PaymentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  planId: 'planId',
+  amount: 'amount',
+  currency: 'currency',
+  status: 'status',
+  provider: 'provider',
+  dodoPaymentId: 'dodoPaymentId',
+  dodoInvoiceId: 'dodoInvoiceId',
+  createdAt: 'createdAt'
+} as const
+
+export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
 
 
 export const SortOrder = {

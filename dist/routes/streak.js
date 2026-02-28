@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const streak_controller_1 = require("../controllers/streak.controller");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticate);
+router.get('/', streak_controller_1.getStreak);
+router.post('/check', streak_controller_1.checkAndUpdateStreak);
+exports.default = router;

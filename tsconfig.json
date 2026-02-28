@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "commonjs",
+    "moduleResolution": "node",
     "rootDir": "src",
     "outDir": "./dist",
     "strict": true,
@@ -10,6 +11,6 @@
     "types": ["node"],
     "lib": ["es2020"]
   },
-  "include": ["src/**/*"],   // include all TS files inside src
-  "exclude": ["node_modules"] 
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
 }

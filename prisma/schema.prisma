@@ -1,34 +1,58 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client"
-    output   = "../src/lib/generated/prisma"
+  output   = "../src/lib/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-
 }
 
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum PlanId {
+  free
+  starter
+  pro
+}
+
+enum SubscriptionStatus {
+  active
+  cancelled
+  past_due
+  trialing
+  on_hold    // Dodo: payment failed, grace period running
+  renewed
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
 
 model User {
-  id            String      @id @default(cuid())
-  email         String      @unique
-  password      String
+  id            String   @id @default(cuid())
   username      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  email         String   @unique
+  password      String
+  dailyGoal     Int      @default(5)
   twitterHandle String?
-  dailyGoal     Int         @default(5)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  openaiKey     String?
 
-  replies     Reply[]
-  dailyStats  DailyStats[]
-  streak      Streak?
-  analytics   Analytics[]
-  aiUsage     AIUsage[]
+  // Relations
+  aiUsage    AIUsage[]
+  analytics  Analytics[]
+  dailyStats DailyStats[]
+  replies    Reply[]
+  streak     Streak?
+
+  // Billing
+  subscription Subscription?
+  dailyUsage   DailyUsage[]
+  payments     Payment[]
 
   @@index([email])
 }
+
+// ─── Reply ────────────────────────────────────────────────────────────────────
 
 model Reply {
   id          String   @id @default(cuid())
@@ -40,12 +64,13 @@ model Reply {
   posted      Boolean  @default(false)
   impressions Int      @default(0)
   createdAt   DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([createdAt])
 }
+
+// ─── DailyStats ───────────────────────────────────────────────────────────────
 
 model DailyStats {
   id                   String   @id @default(cuid())
@@ -56,12 +81,13 @@ model DailyStats {
   goalCompleted        Boolean  @default(false)
   engagementScore      Float    @default(0)
   estimatedImpressions Int      @default(0)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
   @@index([userId])
 }
+
+// ─── Streak ───────────────────────────────────────────────────────────────────
 
 model Streak {
   id             String    @id @default(cuid())
@@ -70,9 +96,10 @@ model Streak {
   longest        Int       @default(0)
   lastActiveDate DateTime?
   updatedAt      DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
 
 model Analytics {
   id                   String   @id @default(cuid())
@@ -85,11 +112,12 @@ model Analytics {
   growthRating         String   @default("Beginner")
   estimatedImpressions Int      @default(0)
   createdAt            DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, period])
 }
+
+// ─── AIUsage ──────────────────────────────────────────────────────────────────
 
 model AIUsage {
   id        String   @id @default(cuid())
@@ -97,8 +125,95 @@ model AIUsage {
   endpoint  String
   tokens    Int      @default(0)
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Subscription ─────────────────────────────────────────────────────────────
+// Mirrors Dodo Payments subscription lifecycle.
+//
+// IDs:
+//   dodoCustomerId     → "cus_xxx"  — created on first checkout / webhook
+//   dodoSubscriptionId → "sub_xxx"  — set on subscription.active webhook
+//   dodoProductId      → "pdt_xxx"  — the plan's product in Dodo dashboard
+
+model Subscription {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  planId PlanId             @default(free)
+  status SubscriptionStatus @default(active)
+
+  // Dodo Payments identifiers
+  dodoCustomerId     String? @unique
+  dodoSubscriptionId String? @unique
+  dodoProductId      String?
+
+  // Billing period — populated from webhook payload
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean   @default(false)
+
+  // Grace period end (when status = on_hold, give N days before revoking access)
+  gracePeriodEnds DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([dodoCustomerId])
+  @@index([dodoSubscriptionId])
+}
+
+// ─── DailyUsage ───────────────────────────────────────────────────────────────
+
+model DailyUsage {
+  id     String @id @default(cuid())
+  userId String
+
+  date String // "YYYY-MM-DD" UTC
+
+  repliesCount Int @default(0)
+  tweetsCount  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
+
+// ─── Payment ─────────────────────────────────────────────────────────────────
+// Audit log of Dodo Payments events (charges, renewals, refunds).
+
+model Payment {
+  id     String @id @default(cuid())
+  userId String
+
+  planId   PlanId
+  amount   Float  // USD
+  currency String @default("usd")
+
+  // "succeeded" | "failed" | "refunded" | "pending"
+  status String
+
+  provider String @default("dodo_payments")
+
+  // Dodo-specific IDs (from webhook payload)
+  dodoPaymentId String? // pay_xxx
+  dodoInvoiceId String? // inv_xxx
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([dodoPaymentId])
 }

@@ -1,27 +1,31 @@
-import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../utils/jwt';
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
 export interface AuthRequest extends Request {
   userId?: string;
-  userEmail?: string;
 }
 
-export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
-  const authHeader = req.headers.authorization;
+export function authenticate(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void {
+  const token = req.cookies?.token;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'No token provided' });
+  if (!token) {
+    res.status(401).json({ error: "Not authenticated" });
     return;
   }
 
-  const token = authHeader.split(' ')[1];
-
   try {
-    const payload = verifyToken(token);
+    const payload = jwt.verify(
+      token,
+      process.env.JWT_SECRET!
+    ) as { userId: string };
+
     req.userId = payload.userId;
-    req.userEmail = payload.email;
     next();
   } catch {
-    res.status(401).json({ error: 'Invalid or expired token' });
+    res.status(401).json({ error: "Invalid or expired session" });
   }
 }

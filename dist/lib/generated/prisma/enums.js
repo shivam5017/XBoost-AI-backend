@@ -9,3 +9,17 @@
 * 🟢 You can import this file directly.
 */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.SubscriptionStatus = exports.PlanId = void 0;
+exports.PlanId = {
+    free: 'free',
+    starter: 'starter',
+    pro: 'pro'
+};
+exports.SubscriptionStatus = {
+    active: 'active',
+    cancelled: 'cancelled',
+    past_due: 'past_due',
+    trialing: 'trialing',
+    on_hold: 'on_hold',
+    renewed: 'renewed'
+};

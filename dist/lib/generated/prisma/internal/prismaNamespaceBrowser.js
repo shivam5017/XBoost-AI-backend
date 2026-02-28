@@ -48,7 +48,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NullsOrder = exports.QueryMode = exports.SortOrder = exports.UserSettingsScalarFieldEnum = exports.SessionScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
+exports.NullsOrder = exports.QueryMode = exports.SortOrder = exports.PaymentScalarFieldEnum = exports.DailyUsageScalarFieldEnum = exports.SubscriptionScalarFieldEnum = exports.AIUsageScalarFieldEnum = exports.AnalyticsScalarFieldEnum = exports.StreakScalarFieldEnum = exports.DailyStatsScalarFieldEnum = exports.ReplyScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/index-browser"));
 exports.Decimal = runtime.Decimal;
 exports.NullTypes = {
@@ -76,8 +76,14 @@ exports.JsonNull = runtime.JsonNull;
 exports.AnyNull = runtime.AnyNull;
 exports.ModelName = {
     User: 'User',
-    Session: 'Session',
-    UserSettings: 'UserSettings'
+    Reply: 'Reply',
+    DailyStats: 'DailyStats',
+    Streak: 'Streak',
+    Analytics: 'Analytics',
+    AIUsage: 'AIUsage',
+    Subscription: 'Subscription',
+    DailyUsage: 'DailyUsage',
+    Payment: 'Payment'
 };
 /*
  * Enums
@@ -90,39 +96,98 @@ exports.TransactionIsolationLevel = runtime.makeStrictEnum({
 });
 exports.UserScalarFieldEnum = {
     id: 'id',
-    email: 'email',
     username: 'username',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+    email: 'email',
     password: 'password',
-    name: 'name',
-    avatar: 'avatar',
-    accessToken: 'accessToken',
-    refreshToken: 'refreshToken',
+    dailyGoal: 'dailyGoal',
+    twitterHandle: 'twitterHandle',
+    openaiKey: 'openaiKey'
+};
+exports.ReplyScalarFieldEnum = {
+    id: 'id',
+    userId: 'userId',
+    tweetId: 'tweetId',
+    tweetText: 'tweetText',
+    replyText: 'replyText',
+    tone: 'tone',
+    posted: 'posted',
+    impressions: 'impressions',
+    createdAt: 'createdAt'
+};
+exports.DailyStatsScalarFieldEnum = {
+    id: 'id',
+    userId: 'userId',
+    date: 'date',
+    repliesGenerated: 'repliesGenerated',
+    repliesPosted: 'repliesPosted',
+    goalCompleted: 'goalCompleted',
+    engagementScore: 'engagementScore',
+    estimatedImpressions: 'estimatedImpressions'
+};
+exports.StreakScalarFieldEnum = {
+    id: 'id',
+    userId: 'userId',
+    current: 'current',
+    longest: 'longest',
+    lastActiveDate: 'lastActiveDate',
+    updatedAt: 'updatedAt'
+};
+exports.AnalyticsScalarFieldEnum = {
+    id: 'id',
+    userId: 'userId',
+    period: 'period',
+    periodStart: 'periodStart',
+    totalReplies: 'totalReplies',
+    avgRepliesPerDay: 'avgRepliesPerDay',
+    consistencyScore: 'consistencyScore',
+    growthRating: 'growthRating',
+    estimatedImpressions: 'estimatedImpressions',
+    createdAt: 'createdAt'
+};
+exports.AIUsageScalarFieldEnum = {
+    id: 'id',
+    userId: 'userId',
+    endpoint: 'endpoint',
+    tokens: 'tokens',
+    createdAt: 'createdAt'
+};
+exports.SubscriptionScalarFieldEnum = {
+    id: 'id',
+    userId: 'userId',
+    planId: 'planId',
+    status: 'status',
+    dodoCustomerId: 'dodoCustomerId',
+    dodoSubscriptionId: 'dodoSubscriptionId',
+    dodoProductId: 'dodoProductId',
+    currentPeriodStart: 'currentPeriodStart',
+    currentPeriodEnd: 'currentPeriodEnd',
+    cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+    gracePeriodEnds: 'gracePeriodEnds',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
 };
-exports.SessionScalarFieldEnum = {
+exports.DailyUsageScalarFieldEnum = {
     id: 'id',
     userId: 'userId',
-    token: 'token',
-    expiresAt: 'expiresAt'
+    date: 'date',
+    repliesCount: 'repliesCount',
+    tweetsCount: 'tweetsCount',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
 };
-exports.UserSettingsScalarFieldEnum = {
+exports.PaymentScalarFieldEnum = {
     id: 'id',
     userId: 'userId',
+    planId: 'planId',
+    amount: 'amount',
+    currency: 'currency',
+    status: 'status',
     provider: 'provider',
-    model: 'model',
-    apiKeyEncrypted: 'apiKeyEncrypted',
-    temperature: 'temperature',
-    maxTokens: 'maxTokens',
-    streaming: 'streaming',
-    tone: 'tone',
-    niche: 'niche',
-    format: 'format',
-    ctaStyle: 'ctaStyle',
-    emojiDensity: 'emojiDensity',
-    hookStrength: 'hookStrength',
-    engagementBoost: 'engagementBoost',
-    autoThreadSplit: 'autoThreadSplit'
+    dodoPaymentId: 'dodoPaymentId',
+    dodoInvoiceId: 'dodoInvoiceId',
+    createdAt: 'createdAt'
 };
 exports.SortOrder = {
     asc: 'asc',

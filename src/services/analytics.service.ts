@@ -8,18 +8,30 @@ function getGrowthRating(avgReplies: number, consistency: number): string {
 }
 
 export async function computeWeeklyAnalytics(userId: string): Promise<void> {
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const weekAgo = new Date(today);
+  weekAgo.setDate(today.getDate() - 6); // SAME LOGIC AS DASHBOARD
 
   const stats = await prisma.dailyStats.findMany({
-    where: { userId, date: { gte: weekAgo } },
+    where: {
+      userId,
+      date: { gte: weekAgo },
+    },
   });
 
   const totalReplies = stats.reduce((s, d) => s + d.repliesPosted, 0);
   const avgRepliesPerDay = totalReplies / 7;
+
   const daysCompleted = stats.filter(d => d.goalCompleted).length;
   const consistencyScore = daysCompleted / 7;
-  const estimatedImpressions = stats.reduce((s, d) => s + d.estimatedImpressions, 0);
+
+  const estimatedImpressions = stats.reduce(
+    (s, d) => s + d.estimatedImpressions,
+    0
+  );
+
   const growthRating = getGrowthRating(avgRepliesPerDay, consistencyScore);
 
   await prisma.analytics.upsert({
@@ -37,6 +49,12 @@ export async function computeWeeklyAnalytics(userId: string): Promise<void> {
       growthRating,
       estimatedImpressions,
     },
-    update: { totalReplies, avgRepliesPerDay, consistencyScore, growthRating, estimatedImpressions },
+    update: {
+      totalReplies,
+      avgRepliesPerDay,
+      consistencyScore,
+      growthRating,
+      estimatedImpressions,
+    },
   });
 }

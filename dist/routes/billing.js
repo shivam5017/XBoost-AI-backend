@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../middleware/auth");
+const billing_controller_1 = require("../controllers/billing.controller");
+const router = (0, express_1.Router)();
+router.post("/webhook", billing_controller_1.handleWebhook);
+router.use(auth_1.authenticate);
+router.get("/plans", billing_controller_1.getPlanCatalog);
+router.get("/subscription", billing_controller_1.getSubscription);
+router.get("/payments", billing_controller_1.getPaymentHistory);
+router.post("/checkout", billing_controller_1.createCheckout);
+router.post("/portal", billing_controller_1.createPortal);
+router.post("/cancel", billing_controller_1.cancelSubscription);
+exports.default = router;

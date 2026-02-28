@@ -6,17 +6,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authenticate = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const authenticate = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader)
-        return res.status(401).json({ error: 'Unauthorized' });
+    const token = req.cookies?.token;
+    if (!token) {
+        res.status(401).json({ error: "Not authenticated" });
+        return;
+    }
     try {
-        const token = authHeader.split(' ')[1];
         const payload = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-        req.userId = payload.id;
+        req.userId = payload.userId;
         next();
     }
-    catch (err) {
-        res.status(401).json({ error: 'Invalid token' });
+    catch {
+        res.status(401).json({ error: "Invalid or expired session" });
     }
 };
 exports.authenticate = authenticate;

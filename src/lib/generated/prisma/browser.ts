@@ -47,3 +47,18 @@ export type Analytics = Prisma.AnalyticsModel
  * 
  */
 export type AIUsage = Prisma.AIUsageModel
+/**
+ * Model Subscription
+ * 
+ */
+export type Subscription = Prisma.SubscriptionModel
+/**
+ * Model DailyUsage
+ * 
+ */
+export type DailyUsage = Prisma.DailyUsageModel
+/**
+ * Model Payment
+ * 
+ */
+export type Payment = Prisma.PaymentModel
