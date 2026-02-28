@@ -63,6 +63,7 @@ async function register(req, res) {
         maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.status(201).json({
+        token,
         user: {
             id: user.id,
             email: user.email,
@@ -91,6 +92,7 @@ async function login(req, res) {
         maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.json({
+        token,
         user: {
             id: user.id,
             email: user.email,
