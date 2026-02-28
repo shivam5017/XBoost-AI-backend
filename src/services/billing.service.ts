@@ -739,14 +739,13 @@ export async function syncCheckoutForUser(input: SyncCheckoutInput): Promise<Web
 
   const checkout = await dodo.checkoutSessions.retrieve(input.checkoutId);
   const paymentId = checkout?.payment_id || null;
-  const paymentStatus = (checkout?.payment_status || "").toLowerCase();
   const checkoutEmail = (checkout?.customer_email || "").toLowerCase();
 
   if (checkoutEmail && checkoutEmail !== user.email.toLowerCase()) {
     throw new Error("Checkout session does not belong to authenticated user");
   }
 
-  if (!paymentId || paymentStatus !== "succeeded") {
+  if (!paymentId) {
     return {
       handled: false,
       type: "checkout.pending",
@@ -755,6 +754,15 @@ export async function syncCheckoutForUser(input: SyncCheckoutInput): Promise<Web
   }
 
   const payment = await dodo.payments.retrieve(paymentId);
+  const paymentStatus = String(payment?.status || checkout?.payment_status || "").toLowerCase();
+  if (paymentStatus === "failed" || paymentStatus === "cancelled") {
+    return {
+      handled: false,
+      type: "checkout.failed",
+      userId: input.userId,
+    };
+  }
+
   const subscriptionId = payment?.subscription_id || null;
   const paymentCustomerId = payment?.customer?.customer_id || null;
   const paymentProductId = readProductId(payment);
@@ -778,6 +786,12 @@ export async function syncCheckoutForUser(input: SyncCheckoutInput): Promise<Web
     currentPeriodEnd = parseDate(remoteSubscription?.next_billing_date);
     cancelAtPeriodEnd = Boolean(remoteSubscription?.cancelled_at);
     finalProductId = remoteSubscription?.product_id || finalProductId;
+  } else if (paymentStatus !== "succeeded") {
+    return {
+      handled: false,
+      type: "checkout.pending",
+      userId: input.userId,
+    };
   }
 
   await prisma.subscription.upsert({
