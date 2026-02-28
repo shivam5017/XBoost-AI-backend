@@ -24,6 +24,9 @@ const loginSchema = zod_1.z.object({
     password: zod_1.z.string(),
 });
 const JWT_SECRET = process.env.JWT_SECRET;
+const isProd = process.env.NODE_ENV === "production";
+const cookieSameSite = isProd ? "none" : "lax";
+const cookieSecure = isProd;
 async function register(req, res) {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -44,8 +47,8 @@ async function register(req, res) {
     const token = jsonwebtoken_1.default.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "30d" });
     res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
         maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.status(201).json({
@@ -72,8 +75,8 @@ async function login(req, res) {
     const token = jsonwebtoken_1.default.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "30d" });
     res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
         maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.json({
@@ -152,8 +155,8 @@ async function removeApiKey(req, res) {
 async function logout(req, res) {
     res.clearCookie("token", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
     });
     res.json({ success: true });
 }

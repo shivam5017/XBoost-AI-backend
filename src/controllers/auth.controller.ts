@@ -18,6 +18,10 @@ const loginSchema = z.object({
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
+const isProd = process.env.NODE_ENV === "production";
+const cookieSameSite: "lax" | "none" = isProd ? "none" : "lax";
+const cookieSecure = isProd;
+
 export async function register(req: Request, res: Response): Promise<void> {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -42,8 +46,8 @@ export async function register(req: Request, res: Response): Promise<void> {
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "30d" });
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: cookieSecure,
+    sameSite: cookieSameSite,
     maxAge: 30 * 24 * 60 * 60 * 1000,
    
   });
@@ -75,8 +79,8 @@ export async function login(req: Request, res: Response): Promise<void> {
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "30d" });
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: cookieSecure,
+    sameSite: cookieSameSite,
     maxAge: 30 * 24 * 60 * 60 * 1000,
   });
 
@@ -178,8 +182,8 @@ export async function removeApiKey(
 export async function logout(req: Request, res: Response): Promise<void> {
   res.clearCookie("token", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: cookieSecure,
+    sameSite: cookieSameSite,
   });
 
   res.json({ success: true });
