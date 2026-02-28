@@ -18,6 +18,8 @@ app.set("trust proxy", 1);
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
+  "https://xboostai.netlify.app",
+  "https://xboost-ai-backend.onrender.com",
 ];
 
 const corsOptions: cors.CorsOptions = {
@@ -43,10 +45,7 @@ app.options(/.*/, cors(corsOptions));
 // header against the raw request body. Parsing it as JSON first will break
 // signature verification and return 401 for every webhook.
 
-app.use(
-  "/billing/webhook",
-  express.raw({ type: "application/json" })
-);
+app.use("/billing/webhook", express.raw({ type: "application/json" }));
 
 // ─── General Middleware ───────────────────────────────────────────────────────
 
