@@ -2,7 +2,7 @@ import type { IncomingHttpHeaders } from "http";
 import DodoPayments from "dodopayments";
 import { prisma } from "../lib/db";
 import { PlanId, SubscriptionStatus } from "../lib/generated/prisma/enums";
-import { getDailyUsageSnapshot } from "./usage.service";
+import { getDailyUsageSnapshotForTimezone } from "./usage.service";
 
 type CheckoutSessionInput = {
   userId: string;
@@ -420,9 +420,12 @@ export async function createCustomerPortalSession(input: CreateCustomerPortalInp
   };
 }
 
-export async function getBillingSnapshot(userId: string): Promise<BillingSnapshot> {
+export async function getBillingSnapshot(
+  userId: string,
+  timeZone = "UTC",
+): Promise<BillingSnapshot> {
   const subscription = await ensureSubscriptionRow(userId);
-  const usage = await getTodayUsage(userId);
+  const usage = await getTodayUsage(userId, timeZone);
 
   return {
     subscription: {
@@ -477,6 +480,7 @@ export function getPlans(): PlanDefinition[] {
 
 async function getTodayUsage(
   userId: string,
+  timeZone = "UTC",
 ): Promise<{
   repliesCount: number;
   tweetsCount: number;
@@ -495,7 +499,7 @@ async function getTodayUsage(
   }
 
   try {
-    const usage = await getDailyUsageSnapshot(userId);
+    const usage = await getDailyUsageSnapshotForTimezone(userId, timeZone);
     return {
       repliesCount: usage.repliesCount,
       tweetsCount: usage.tweetsCount,

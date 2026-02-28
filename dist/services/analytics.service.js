@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.computeWeeklyAnalytics = computeWeeklyAnalytics;
 const db_1 = require("../lib/db");
+const timezone_1 = require("../utils/timezone");
 function getGrowthRating(avgReplies, consistency) {
     const score = avgReplies * consistency;
     if (score >= 15)
@@ -10,11 +11,11 @@ function getGrowthRating(avgReplies, consistency) {
         return 'Builder';
     return 'Beginner';
 }
-async function computeWeeklyAnalytics(userId) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekAgo = new Date(today);
-    weekAgo.setDate(today.getDate() - 6); // SAME LOGIC AS DASHBOARD
+async function computeWeeklyAnalytics(userId, timeZone = "UTC") {
+    const tz = (0, timezone_1.readTimezone)(timeZone);
+    const { start: todayStart } = (0, timezone_1.dayRangeUtcForTimezone)(new Date(), tz);
+    const weekAgo = new Date(todayStart);
+    weekAgo.setUTCDate(todayStart.getUTCDate() - 6); // last 7 local days
     const stats = await db_1.prisma.dailyStats.findMany({
         where: {
             userId,

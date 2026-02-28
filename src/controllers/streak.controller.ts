@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../lib/db';
 import { updateStreak } from '../services/streak.service';
+import { readTimezoneFromRequest } from "../utils/timezone";
 
 export async function getStreak(req: AuthRequest, res: Response): Promise<void> {
   const streak = await prisma.streak.findUnique({ where: { userId: req.userId } });
@@ -9,7 +10,7 @@ export async function getStreak(req: AuthRequest, res: Response): Promise<void> 
 }
 
 export async function checkAndUpdateStreak(req: AuthRequest, res: Response): Promise<void> {
-  await updateStreak(req.userId!);
+  await updateStreak(req.userId!, readTimezoneFromRequest(req));
   const streak = await prisma.streak.findUnique({ where: { userId: req.userId } });
   res.json(streak);
 }

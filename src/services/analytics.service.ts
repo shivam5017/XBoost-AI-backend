@@ -1,4 +1,5 @@
 import { prisma } from '../lib/db';
+import { dayRangeUtcForTimezone, readTimezone } from "../utils/timezone";
 
 function getGrowthRating(avgReplies: number, consistency: number): string {
   const score = avgReplies * consistency;
@@ -7,12 +8,11 @@ function getGrowthRating(avgReplies: number, consistency: number): string {
   return 'Beginner';
 }
 
-export async function computeWeeklyAnalytics(userId: string): Promise<void> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const weekAgo = new Date(today);
-  weekAgo.setDate(today.getDate() - 6); // SAME LOGIC AS DASHBOARD
+export async function computeWeeklyAnalytics(userId: string, timeZone = "UTC"): Promise<void> {
+  const tz = readTimezone(timeZone);
+  const { start: todayStart } = dayRangeUtcForTimezone(new Date(), tz);
+  const weekAgo = new Date(todayStart);
+  weekAgo.setUTCDate(todayStart.getUTCDate() - 6); // last 7 local days
 
   const stats = await prisma.dailyStats.findMany({
     where: {

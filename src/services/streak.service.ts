@@ -1,23 +1,35 @@
 import { prisma } from '../lib/db';
+import { dayRangeUtcForTimezone, readTimezone, startOfDayUtcForTimezone } from "../utils/timezone";
 
-function isSameDay(d1: Date, d2: Date): boolean {
-  return d1.toDateString() === d2.toDateString();
+function isSameDay(d1: Date, d2: Date, timeZone: string): boolean {
+  const tz = readTimezone(timeZone);
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return fmt.format(d1) === fmt.format(d2);
 }
 
-function isYesterday(date: Date): boolean {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  return isSameDay(date, yesterday);
+function isYesterday(date: Date, timeZone: string): boolean {
+  const tz = readTimezone(timeZone);
+  const now = new Date();
+  const todayStart = startOfDayUtcForTimezone(now, tz);
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setUTCDate(yesterdayStart.getUTCDate() - 1);
+  const { end } = dayRangeUtcForTimezone(yesterdayStart, tz);
+  return date >= yesterdayStart && date < end;
 }
 
-export async function updateStreak(userId: string): Promise<void> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+export async function updateStreak(userId: string, timeZone = "UTC"): Promise<void> {
+  const tz = readTimezone(timeZone);
+  const { start: todayStart } = dayRangeUtcForTimezone(new Date(), tz);
 
   const [streak, dailyStats] = await Promise.all([
     prisma.streak.findUnique({ where: { userId } }),
     prisma.dailyStats.findFirst({
-      where: { userId, date: { gte: today } },
+      where: { userId, date: { gte: todayStart } },
     }),
   ]);
 
@@ -39,11 +51,11 @@ export async function updateStreak(userId: string): Promise<void> {
   }
 
   if (goalMet) {
-    if (streak.lastActiveDate && isSameDay(streak.lastActiveDate, new Date())) {
+    if (streak.lastActiveDate && isSameDay(streak.lastActiveDate, new Date(), tz)) {
       return; // already updated today
     }
 
-    const shouldContinue = streak.lastActiveDate && isYesterday(streak.lastActiveDate);
+    const shouldContinue = streak.lastActiveDate && isYesterday(streak.lastActiveDate, tz);
     const newCurrent = shouldContinue ? streak.current + 1 : 1;
 
     await prisma.streak.update({
@@ -56,7 +68,11 @@ export async function updateStreak(userId: string): Promise<void> {
     });
   } else {
     // Check if yesterday was active - if today's goal not met yet, don't reset until EOD
-    if (streak.lastActiveDate && !isSameDay(streak.lastActiveDate, new Date()) && !isYesterday(streak.lastActiveDate)) {
+    if (
+      streak.lastActiveDate &&
+      !isSameDay(streak.lastActiveDate, new Date(), tz) &&
+      !isYesterday(streak.lastActiveDate, tz)
+    ) {
       await prisma.streak.update({
         where: { userId },
         data: { current: 0 },

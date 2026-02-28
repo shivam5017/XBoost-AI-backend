@@ -4,8 +4,10 @@ exports.getEffectivePlan = getEffectivePlan;
 exports.consumeDailyReplyQuota = consumeDailyReplyQuota;
 exports.consumeDailyTweetQuota = consumeDailyTweetQuota;
 exports.getDailyUsageSnapshot = getDailyUsageSnapshot;
+exports.getDailyUsageSnapshotForTimezone = getDailyUsageSnapshotForTimezone;
 const db_1 = require("../lib/db");
 const enums_1 = require("../lib/generated/prisma/enums");
+const timezone_1 = require("../utils/timezone");
 function isPrismaMissingBillingTable(error) {
     const code = error?.code;
     const message = String(error?.message || "");
@@ -20,11 +22,6 @@ function isPrismaMissingUsageTable(error) {
         code === "P2022" ||
         message.includes("AIUsage") ||
         message.includes("does not exist in the current database"));
-}
-function startOfToday() {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
 }
 function isSubscriptionPaidAndActive(subscription) {
     if (subscription.planId === enums_1.PlanId.free)
@@ -84,15 +81,16 @@ function planDailyLimit(planId, quotaType) {
 function quotaEndpoint(quotaType) {
     return quotaType === "reply" ? "/ai/reply" : "/ai/create";
 }
-async function consumeDailyQuota(userId, quotaType, units) {
+async function consumeDailyQuota(userId, quotaType, units, timeZone = "UTC") {
     const planId = await resolveEffectivePlan(userId);
     const limit = planDailyLimit(planId, quotaType);
-    const today = startOfToday();
+    const tz = (0, timezone_1.readTimezone)(timeZone);
+    const { start, end } = (0, timezone_1.dayRangeUtcForTimezone)(new Date(), tz);
     const used = await db_1.prisma.aIUsage.count({
         where: {
             userId,
             endpoint: quotaEndpoint(quotaType),
-            createdAt: { gte: today },
+            createdAt: { gte: start, lt: end },
         },
     }).catch((error) => {
         if (isPrismaMissingUsageTable(error))
@@ -119,23 +117,27 @@ async function consumeDailyQuota(userId, quotaType, units) {
         remaining: Math.max(0, limit - used),
     };
 }
-async function consumeDailyReplyQuota(userId, units = 1) {
-    return consumeDailyQuota(userId, "reply", units);
+async function consumeDailyReplyQuota(userId, units = 1, timeZone = "UTC") {
+    return consumeDailyQuota(userId, "reply", units, timeZone);
 }
-async function consumeDailyTweetQuota(userId, units = 1) {
-    return consumeDailyQuota(userId, "tweet", units);
+async function consumeDailyTweetQuota(userId, units = 1, timeZone = "UTC") {
+    return consumeDailyQuota(userId, "tweet", units, timeZone);
 }
 async function getDailyUsageSnapshot(userId) {
+    return getDailyUsageSnapshotForTimezone(userId, "UTC");
+}
+async function getDailyUsageSnapshotForTimezone(userId, timeZone = "UTC") {
     const planId = await resolveEffectivePlan(userId);
     const replyLimit = planDailyLimit(planId, "reply");
     const tweetLimit = planDailyLimit(planId, "tweet");
-    const today = startOfToday();
+    const tz = (0, timezone_1.readTimezone)(timeZone);
+    const { start, end } = (0, timezone_1.dayRangeUtcForTimezone)(new Date(), tz);
     const [repliesCount, tweetsCount] = await Promise.all([
         db_1.prisma.aIUsage.count({
             where: {
                 userId,
                 endpoint: "/ai/reply",
-                createdAt: { gte: today },
+                createdAt: { gte: start, lt: end },
             },
         }).catch((error) => {
             if (isPrismaMissingUsageTable(error))
@@ -146,7 +148,7 @@ async function getDailyUsageSnapshot(userId) {
             where: {
                 userId,
                 endpoint: "/ai/create",
-                createdAt: { gte: today },
+                createdAt: { gte: start, lt: end },
             },
         }).catch((error) => {
             if (isPrismaMissingUsageTable(error))

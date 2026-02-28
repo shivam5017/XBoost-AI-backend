@@ -336,9 +336,9 @@ async function createCustomerPortalSession(input) {
         raw: response,
     };
 }
-async function getBillingSnapshot(userId) {
+async function getBillingSnapshot(userId, timeZone = "UTC") {
     const subscription = await ensureSubscriptionRow(userId);
-    const usage = await getTodayUsage(userId);
+    const usage = await getTodayUsage(userId, timeZone);
     return {
         subscription: {
             planId: subscription.planId,
@@ -383,7 +383,7 @@ async function listPayments(userId, limit = 20) {
 function getPlans() {
     return [PLAN_CATALOG.free, PLAN_CATALOG.starter, PLAN_CATALOG.pro];
 }
-async function getTodayUsage(userId) {
+async function getTodayUsage(userId, timeZone = "UTC") {
     const hasTable = await isBillingTableAvailable("DailyStats");
     if (!hasTable) {
         const fallback = PLAN_CATALOG[enums_1.PlanId.free].limits;
@@ -395,7 +395,7 @@ async function getTodayUsage(userId) {
         };
     }
     try {
-        const usage = await (0, usage_service_1.getDailyUsageSnapshot)(userId);
+        const usage = await (0, usage_service_1.getDailyUsageSnapshotForTimezone)(userId, timeZone);
         return {
             repliesCount: usage.repliesCount,
             tweetsCount: usage.tweetsCount,

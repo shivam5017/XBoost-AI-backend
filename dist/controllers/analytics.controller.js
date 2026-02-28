@@ -8,6 +8,21 @@ const analytics_service_1 = require("../services/analytics.service");
 const streak_service_1 = require("../services/streak.service");
 const enums_1 = require("../lib/generated/prisma/enums");
 const usage_service_1 = require("../services/usage.service");
+const timezone_1 = require("../utils/timezone");
+function localDateKey(date, timeZone) {
+    return new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).format(date);
+}
+function localDayLabel(date, timeZone) {
+    return new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        weekday: "short",
+    }).format(date);
+}
 async function requireProAnalytics(req, res) {
     const planId = await (0, usage_service_1.getEffectivePlan)(req.userId);
     if (planId !== enums_1.PlanId.pro) {
@@ -23,11 +38,12 @@ async function requireProAnalytics(req, res) {
 async function getDashboard(req, res) {
     if (!(await requireProAnalytics(req, res)))
         return;
-    const today = new Date();
-    await (0, streak_service_1.updateStreak)(req.userId);
-    today.setHours(0, 0, 0, 0);
+    const timeZone = (0, timezone_1.readTimezoneFromRequest)(req);
+    const now = new Date();
+    await (0, streak_service_1.updateStreak)(req.userId, timeZone);
+    const { start: today } = (0, timezone_1.dayRangeUtcForTimezone)(now, timeZone);
     const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 6); // last 7 days including today
+    weekAgo.setUTCDate(weekAgo.getUTCDate() - 6); // last 7 local days including today
     const [user, todayStats, streak, weeklyStats, totalReplies, aiUsageCount] = await Promise.all([
         db_1.prisma.user.findUnique({
             where: { id: req.userId },
@@ -53,8 +69,8 @@ async function getDashboard(req, res) {
     for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        const iso = d.toISOString().split("T")[0];
-        const stat = weeklyStats.find((s) => s.date.toISOString().split("T")[0] === iso);
+        const iso = localDateKey(d, timeZone);
+        const stat = weeklyStats.find((s) => localDateKey(s.date, timeZone) === iso);
         days.push({
             date: iso,
             replies: stat?.repliesPosted ?? 0,
@@ -91,7 +107,7 @@ async function getDashboard(req, res) {
 async function getWeeklyReport(req, res) {
     if (!(await requireProAnalytics(req, res)))
         return;
-    await (0, analytics_service_1.computeWeeklyAnalytics)(req.userId);
+    await (0, analytics_service_1.computeWeeklyAnalytics)(req.userId, (0, timezone_1.readTimezoneFromRequest)(req));
     const analytics = await db_1.prisma.analytics.findFirst({
         where: { userId: req.userId, period: "weekly" },
         orderBy: { createdAt: "desc" },
@@ -102,8 +118,9 @@ async function getActivity(req, res) {
     if (!(await requireProAnalytics(req, res)))
         return;
     const period = req.query.period || "week";
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const timeZone = (0, timezone_1.readTimezoneFromRequest)(req);
+    const now = new Date();
+    const { start: today } = (0, timezone_1.dayRangeUtcForTimezone)(now, timeZone);
     let days = [];
     if (period === "day") {
         // Hourly breakdown for today
@@ -119,14 +136,14 @@ async function getActivity(req, res) {
         // Return 24 hours — real data only for today's totals, spread evenly as approximation
         days = Array.from({ length: 24 }, (_, i) => ({
             label: `${i}:00`,
-            replies: i === new Date().getHours() ? (todayStats?.repliesPosted ?? 0) : 0,
-            aiUses: i === new Date().getHours() ? aiUsageToday : 0,
-            impressions: i === new Date().getHours() ? (todayStats?.estimatedImpressions ?? 0) : 0,
+            replies: i === Number(new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", hourCycle: "h23" }).format(now)) ? (todayStats?.repliesPosted ?? 0) : 0,
+            aiUses: i === Number(new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", hourCycle: "h23" }).format(now)) ? aiUsageToday : 0,
+            impressions: i === Number(new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", hourCycle: "h23" }).format(now)) ? (todayStats?.estimatedImpressions ?? 0) : 0,
         }));
     }
     else if (period === "week") {
         const weekAgo = new Date(today);
-        weekAgo.setDate(today.getDate() - 6);
+        weekAgo.setUTCDate(today.getUTCDate() - 6);
         const [stats, aiUsageByDay] = await Promise.all([
             db_1.prisma.dailyStats.findMany({
                 where: { userId: req.userId, date: { gte: weekAgo } },
@@ -138,15 +155,14 @@ async function getActivity(req, res) {
                 _count: true,
             }),
         ]);
-        const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         for (let i = 6; i >= 0; i--) {
             const d = new Date(today);
-            d.setDate(today.getDate() - i);
-            const iso = d.toISOString().split("T")[0];
-            const stat = stats.find((s) => s.date.toISOString().split("T")[0] === iso);
-            const aiCount = aiUsageByDay.filter((a) => new Date(a.createdAt).toISOString().split("T")[0] === iso).length;
+            d.setUTCDate(today.getUTCDate() - i);
+            const iso = localDateKey(d, timeZone);
+            const stat = stats.find((s) => localDateKey(s.date, timeZone) === iso);
+            const aiCount = aiUsageByDay.filter((a) => localDateKey(new Date(a.createdAt), timeZone) === iso).length;
             days.push({
-                label: DAY_LABELS[d.getDay()],
+                label: localDayLabel(d, timeZone),
                 replies: stat?.repliesPosted ?? 0,
                 aiUses: aiCount,
                 impressions: stat?.estimatedImpressions ?? 0,
@@ -155,7 +171,7 @@ async function getActivity(req, res) {
     }
     else if (period === "month") {
         const monthAgo = new Date(today);
-        monthAgo.setDate(today.getDate() - 29); // last 30 days
+        monthAgo.setUTCDate(today.getUTCDate() - 29); // last 30 local days
         const [stats, aiUsageAll] = await Promise.all([
             db_1.prisma.dailyStats.findMany({
                 where: { userId: req.userId, date: { gte: monthAgo } },
@@ -169,9 +185,9 @@ async function getActivity(req, res) {
         // Group into 4 weeks
         for (let w = 0; w < 4; w++) {
             const weekStart = new Date(monthAgo);
-            weekStart.setDate(monthAgo.getDate() + w * 7);
+            weekStart.setUTCDate(monthAgo.getUTCDate() + w * 7);
             const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 6);
+            weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
             const weekStats = stats.filter((s) => s.date >= weekStart && s.date <= weekEnd);
             const weekAi = aiUsageAll.filter((a) => a.createdAt >= weekStart && a.createdAt <= weekEnd);
             days.push({
@@ -186,7 +202,11 @@ async function getActivity(req, res) {
     const streakHistory = await db_1.prisma.dailyStats.findMany({
         where: {
             userId: req.userId,
-            date: { gte: period === "month" ? new Date(today.getTime() - 29 * 86400000) : new Date(today.getTime() - 6 * 86400000) },
+            date: {
+                gte: period === "month"
+                    ? new Date(today.getTime() - 29 * 86400000)
+                    : new Date(today.getTime() - 6 * 86400000),
+            },
         },
         orderBy: { date: "asc" },
         select: { date: true, goalCompleted: true, repliesPosted: true, estimatedImpressions: true },

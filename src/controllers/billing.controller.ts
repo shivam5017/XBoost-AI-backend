@@ -12,6 +12,7 @@ import {
   processWebhookPayload,
   syncCheckoutForUser,
 } from "../services/billing.service";
+import { readTimezoneFromRequest } from "../utils/timezone";
 
 const checkoutSchema = z.object({
   planId: z.enum([PlanId.starter, PlanId.pro]),
@@ -91,7 +92,7 @@ export async function syncCheckout(req: any, res: any) {
       checkoutId: parsed.data.checkoutId,
     });
 
-    const billing = await getBillingSnapshot(req.userId);
+    const billing = await getBillingSnapshot(req.userId, readTimezoneFromRequest(req));
     return res.json({
       success: result.handled,
       status: result.type,
@@ -131,7 +132,7 @@ export async function getSubscription(req: any, res: any) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-  const billing = await getBillingSnapshot(req.userId);
+  const billing = await getBillingSnapshot(req.userId, readTimezoneFromRequest(req));
   return res.json(billing);
 }
 
@@ -161,7 +162,7 @@ export async function cancelSubscription(req: any, res: any) {
 
   try {
     await cancelSubscriptionAtPeriodEnd(req.userId);
-    const billing = await getBillingSnapshot(req.userId);
+    const billing = await getBillingSnapshot(req.userId, readTimezoneFromRequest(req));
     return res.json({
       success: true,
       subscription: billing.subscription,

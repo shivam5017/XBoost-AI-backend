@@ -12,6 +12,7 @@ const zod_1 = require("zod");
 const enums_1 = require("../lib/generated/prisma/enums");
 const db_1 = require("../lib/db");
 const billing_service_1 = require("../services/billing.service");
+const timezone_1 = require("../utils/timezone");
 const checkoutSchema = zod_1.z.object({
     planId: zod_1.z.enum([enums_1.PlanId.starter, enums_1.PlanId.pro]),
     successUrl: zod_1.z.string().url().optional(),
@@ -75,7 +76,7 @@ async function syncCheckout(req, res) {
             userId: req.userId,
             checkoutId: parsed.data.checkoutId,
         });
-        const billing = await (0, billing_service_1.getBillingSnapshot)(req.userId);
+        const billing = await (0, billing_service_1.getBillingSnapshot)(req.userId, (0, timezone_1.readTimezoneFromRequest)(req));
         return res.json({
             success: result.handled,
             status: result.type,
@@ -111,7 +112,7 @@ async function getSubscription(req, res) {
     if (!req.userId) {
         return res.status(401).json({ error: "Not authenticated" });
     }
-    const billing = await (0, billing_service_1.getBillingSnapshot)(req.userId);
+    const billing = await (0, billing_service_1.getBillingSnapshot)(req.userId, (0, timezone_1.readTimezoneFromRequest)(req));
     return res.json(billing);
 }
 async function getPaymentHistory(req, res) {
@@ -131,7 +132,7 @@ async function cancelSubscription(req, res) {
     }
     try {
         await (0, billing_service_1.cancelSubscriptionAtPeriodEnd)(req.userId);
-        const billing = await (0, billing_service_1.getBillingSnapshot)(req.userId);
+        const billing = await (0, billing_service_1.getBillingSnapshot)(req.userId, (0, timezone_1.readTimezoneFromRequest)(req));
         return res.json({
             success: true,
             subscription: billing.subscription,

@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../lib/db';
 import * as AIService from '../services/ai.service';
 import { consumeDailyReplyQuota, consumeDailyTweetQuota } from '../services/usage.service';
+import { readTimezoneFromRequest, startOfDayUtcForTimezone } from '../utils/timezone';
 
 async function getUserApiKey(userId: string): Promise<string | null> {
   const user = await prisma.user.findUnique({
@@ -16,9 +17,12 @@ async function trackUsage(userId: string, endpoint: string, tokens: number): Pro
   await prisma.aIUsage.create({ data: { userId, endpoint, tokens } });
 }
 
-async function updateDailyStats(userId: string, increment: 'generated' | 'posted'): Promise<void> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+async function updateDailyStats(
+  userId: string,
+  increment: 'generated' | 'posted',
+  timeZone = "UTC",
+): Promise<void> {
+  const today = startOfDayUtcForTimezone(new Date(), timeZone);
 
   await prisma.dailyStats.upsert({
     where: { userId_date: { userId, date: today } },
@@ -57,7 +61,8 @@ export async function generateReply(req: AuthRequest, res: Response): Promise<vo
     return;
   }
 
-  const quota = await consumeDailyReplyQuota(req.userId!, 1);
+  const timeZone = readTimezoneFromRequest(req);
+  const quota = await consumeDailyReplyQuota(req.userId!, 1, timeZone);
   if (!quota.allowed) {
     res.status(402).json({
       error: 'Daily reply limit reached. Upgrade to Starter or Pro to continue.',
@@ -82,6 +87,9 @@ export async function generateReply(req: AuthRequest, res: Response): Promise<vo
       }),
     ]);
     replyId = createdReply.id;
+    updateDailyStats(req.userId!, 'generated', timeZone).catch((dbErr) => {
+      console.error('[/ai/reply] dailyStats error (non-fatal):', dbErr.message);
+    });
   } catch (dbErr: any) {
     console.error('[/ai/reply] DB write error (non-fatal):', dbErr.message);
   }
@@ -131,7 +139,8 @@ export async function createTweet(req: AuthRequest, res: Response): Promise<void
     return;
   }
 
-  const quota = await consumeDailyTweetQuota(req.userId!, 1);
+  const timeZone = readTimezoneFromRequest(req);
+  const quota = await consumeDailyTweetQuota(req.userId!, 1, timeZone);
   if (!quota.allowed) {
     res.status(402).json({
       error: 'Daily tweet composer limit reached. Upgrade to Starter or Pro to continue.',
@@ -156,6 +165,9 @@ export async function createTweet(req: AuthRequest, res: Response): Promise<void
       }),
     ]);
     replyId = createdReply.id;
+    updateDailyStats(req.userId!, 'generated', timeZone).catch((dbErr) => {
+      console.error('[/ai/create] dailyStats error (non-fatal):', dbErr.message);
+    });
   } catch (dbErr: any) {
     console.error('[/ai/create] DB write error (non-fatal):', dbErr.message);
   }
@@ -193,11 +205,12 @@ export async function markPosted(req: AuthRequest, res: Response): Promise<void>
   if (!replyId) { res.status(400).json({ error: 'replyId required' }); return; }
 
   try {
+    const timeZone = readTimezoneFromRequest(req);
     await prisma.reply.updateMany({
       where: { id: replyId, userId: req.userId },
       data: { posted: true },
     });
-    updateDailyStats(req.userId!, 'posted').catch((dbErr) => {
+    updateDailyStats(req.userId!, 'posted', timeZone).catch((dbErr) => {
       console.error('[/ai/mark-posted] DB write error (non-fatal):', dbErr.message);
     });
     res.json({ success: true });
