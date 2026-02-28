@@ -82,6 +82,16 @@ const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
 type BillingTable = "Subscription" | "Payment" | "DailyStats";
 const tableAvailabilityCache: Partial<Record<BillingTable, boolean>> = {};
 
+function readEnv(...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (!value) continue;
+    const normalized = value.trim();
+    if (normalized) return normalized;
+  }
+  return undefined;
+}
+
 function isPrismaUnavailableError(error: unknown): boolean {
   const code = (error as any)?.code;
   const message = String((error as any)?.message || "");
@@ -134,33 +144,33 @@ async function isBillingTableAvailable(table: BillingTable): Promise<boolean> {
 }
 
 function getDodoClient(): DodoPayments {
-  const apiKey = process.env.DODO_PAYMENTS_API_KEY;
+  const apiKey = readEnv("DODO_PAYMENTS_API_KEY", "DODO_API_KEY");
   if (!apiKey) {
-    throw new Error("DODO_PAYMENTS_API_KEY is not configured");
+    throw new Error("Dodo API key is missing (set DODO_PAYMENTS_API_KEY)");
   }
 
-  const environment = process.env.DODO_PAYMENTS_ENVIRONMENT as
-    | "live_mode"
-    | "test_mode"
-    | undefined;
+  const environmentRaw = readEnv("DODO_PAYMENTS_ENVIRONMENT", "DODO_ENVIRONMENT");
+  const environment = environmentRaw === "live" ? "live_mode"
+    : environmentRaw === "test" ? "test_mode"
+    : (environmentRaw as "live_mode" | "test_mode" | undefined);
 
   return new DodoPayments({
     bearerToken: apiKey,
-    webhookKey: process.env.DODO_PAYMENTS_WEBHOOK_KEY || null,
+    webhookKey: readEnv("DODO_PAYMENTS_WEBHOOK_KEY", "DODO_WEBHOOK_KEY") || null,
     ...(environment ? { environment } : {}),
   });
 }
 
 function mapPlanToProductId(planId: PlanId): string {
   if (planId === PlanId.starter) {
-    const value = process.env.DODO_STARTER_PRODUCT_ID;
-    if (!value) throw new Error("DODO_STARTER_PRODUCT_ID is not configured");
+    const value = readEnv("DODO_STARTER_PRODUCT_ID", "DODO_STARTER_PRICE_ID");
+    if (!value) throw new Error("Starter product id is missing (set DODO_STARTER_PRODUCT_ID)");
     return value;
   }
 
   if (planId === PlanId.pro) {
-    const value = process.env.DODO_PRO_PRODUCT_ID;
-    if (!value) throw new Error("DODO_PRO_PRODUCT_ID is not configured");
+    const value = readEnv("DODO_PRO_PRODUCT_ID", "DODO_PRO_PRICE_ID");
+    if (!value) throw new Error("Pro product id is missing (set DODO_PRO_PRODUCT_ID)");
     return value;
   }
 
@@ -169,9 +179,15 @@ function mapPlanToProductId(planId: PlanId): string {
 
 function mapProductToPlan(productId?: string | null): PlanId {
   if (!productId) return PlanId.free;
-  if (productId === process.env.DODO_PRO_PRODUCT_ID) return PlanId.pro;
-  if (productId === process.env.DODO_STARTER_PRODUCT_ID) return PlanId.starter;
+  if (productId === readEnv("DODO_PRO_PRODUCT_ID", "DODO_PRO_PRICE_ID")) return PlanId.pro;
+  if (productId === readEnv("DODO_STARTER_PRODUCT_ID", "DODO_STARTER_PRICE_ID")) return PlanId.starter;
   return PlanId.free;
+}
+
+function isDodoUnauthorized(error: unknown): boolean {
+  const message = String((error as any)?.message || "").toLowerCase();
+  const status = Number((error as any)?.status ?? (error as any)?.statusCode ?? 0);
+  return status === 401 || message.includes("401");
 }
 
 function mapDodoStatusToLocal(type: string, status?: string): SubscriptionStatus {
@@ -292,21 +308,31 @@ async function resolveWebhookUserId(data: any): Promise<string | null> {
 export async function createCheckoutSession(input: CheckoutSessionInput) {
   const dodo = getDodoClient();
   const productId = mapPlanToProductId(input.planId);
-  const fallbackReturnUrl = process.env.DODO_BILLING_RETURN_URL || undefined;
+  const fallbackReturnUrl = readEnv("DODO_BILLING_RETURN_URL", "APP_URL");
+  let response: any;
 
-  const response = await dodo.checkoutSessions.create({
-    product_cart: [{ product_id: productId, quantity: 1 }],
-    customer: {
-      email: input.email,
-      ...(input.name ? { name: input.name } : {}),
-    },
-    metadata: {
-      userId: input.userId,
-      planId: input.planId,
-      ...(input.cancelUrl ? { cancelUrl: input.cancelUrl } : {}),
-    },
-    return_url: input.successUrl || fallbackReturnUrl,
-  });
+  try {
+    response = await dodo.checkoutSessions.create({
+      product_cart: [{ product_id: productId, quantity: 1 }],
+      customer: {
+        email: input.email,
+        ...(input.name ? { name: input.name } : {}),
+      },
+      metadata: {
+        userId: input.userId,
+        planId: input.planId,
+        ...(input.cancelUrl ? { cancelUrl: input.cancelUrl } : {}),
+      },
+      return_url: input.successUrl || fallbackReturnUrl,
+    });
+  } catch (error) {
+    if (isDodoUnauthorized(error)) {
+      throw new Error(
+        "Dodo auth failed. Verify DODO_PAYMENTS_API_KEY and DODO_PAYMENTS_ENVIRONMENT (test_mode/live_mode) match your product IDs."
+      );
+    }
+    throw error;
+  }
 
   return {
     checkoutId: response.session_id,
@@ -323,9 +349,19 @@ export async function createCustomerPortalSession(input: CreateCustomerPortalInp
     throw new Error("No Dodo customer found for this user yet");
   }
 
-  const response = await dodo.customers.customerPortal.create(subscription.dodoCustomerId, {
-    send_email: false,
-  });
+  let response: any;
+  try {
+    response = await dodo.customers.customerPortal.create(subscription.dodoCustomerId, {
+      send_email: false,
+    });
+  } catch (error) {
+    if (isDodoUnauthorized(error)) {
+      throw new Error(
+        "Dodo auth failed. Verify DODO_PAYMENTS_API_KEY and DODO_PAYMENTS_ENVIRONMENT (test_mode/live_mode)."
+      );
+    }
+    throw error;
+  }
 
   return {
     url: response.link,
