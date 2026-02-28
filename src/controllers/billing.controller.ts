@@ -5,6 +5,7 @@ import {
   cancelSubscriptionAtPeriodEnd,
   createCheckoutSession,
   createCustomerPortalSession,
+  getFeatureCatalogForUser,
   getPlans,
   getBillingSnapshot,
   listPayments,
@@ -125,6 +126,13 @@ export async function createPortal(req: any, res: any) {
 
 export async function getPlanCatalog(_req: any, res: any) {
   return res.json(getPlans());
+}
+
+export async function getFeatureCatalog(req: any, res: any) {
+  if (!req.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  return res.json(await getFeatureCatalogForUser(req.userId));
 }
 
 export async function getSubscription(req: any, res: any) {

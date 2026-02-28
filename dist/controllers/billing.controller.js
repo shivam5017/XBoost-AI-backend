@@ -4,6 +4,7 @@ exports.createCheckout = createCheckout;
 exports.syncCheckout = syncCheckout;
 exports.createPortal = createPortal;
 exports.getPlanCatalog = getPlanCatalog;
+exports.getFeatureCatalog = getFeatureCatalog;
 exports.getSubscription = getSubscription;
 exports.getPaymentHistory = getPaymentHistory;
 exports.cancelSubscription = cancelSubscription;
@@ -107,6 +108,12 @@ async function createPortal(req, res) {
 }
 async function getPlanCatalog(_req, res) {
     return res.json((0, billing_service_1.getPlans)());
+}
+async function getFeatureCatalog(req, res) {
+    if (!req.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+    }
+    return res.json(await (0, billing_service_1.getFeatureCatalogForUser)(req.userId));
 }
 async function getSubscription(req, res) {
     if (!req.userId) {

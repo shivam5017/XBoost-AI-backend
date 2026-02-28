@@ -8,6 +8,19 @@ exports.generateReply = generateReply;
 exports.analyzeTweet = analyzeTweet;
 exports.createTweet = createTweet;
 exports.rewriteTweet = rewriteTweet;
+exports.viralHookIntelligence = viralHookIntelligence;
+exports.preLaunchOptimizer = preLaunchOptimizer;
+exports.nicheTrendRadar = nicheTrendRadar;
+exports.growthStrategistMode = growthStrategistMode;
+exports.personalBrandAnalyzer = personalBrandAnalyzer;
+exports.threadWriterPro = threadWriterPro;
+exports.leadMagnetGenerator = leadMagnetGenerator;
+exports.audiencePsychologyInsights = audiencePsychologyInsights;
+exports.repurposingEngine = repurposingEngine;
+exports.monetizationToolkit = monetizationToolkit;
+exports.viralScorePredictor = viralScorePredictor;
+exports.bestTimeToPost = bestTimeToPost;
+exports.contentPerformancePrediction = contentPerformancePrediction;
 const openai_1 = __importDefault(require("openai"));
 const TONE_PROMPTS = {
     smart: 'Be insightful, add a unique perspective, and provide value. Sound knowledgeable but approachable.',
@@ -186,4 +199,404 @@ Rewrite rules:
     });
     const rewrite = completion.choices[0]?.message?.content?.trim() || '';
     return { rewrite, tokens: completion.usage?.total_tokens || 0 };
+}
+function clampScore(value) {
+    return Math.max(1, Math.min(100, Math.round(value)));
+}
+function extractKeywords(text, limit = 8) {
+    const stop = new Set([
+        "the", "and", "for", "that", "with", "this", "from", "your", "into", "about",
+        "have", "will", "just", "you", "are", "was", "were", "they", "them", "then",
+        "what", "when", "where", "which", "while", "there", "their", "than", "been",
+        "into", "over", "under", "more", "less", "very", "also", "not", "why", "how",
+    ]);
+    const tokens = text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/)
+        .filter((word) => word.length > 2 && !stop.has(word));
+    const freq = new Map();
+    for (const token of tokens)
+        freq.set(token, (freq.get(token) || 0) + 1);
+    return [...freq.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([word]) => word);
+}
+async function jsonModuleCall(systemPrompt, userPrompt, fallback, userApiKey) {
+    if (!userApiKey && !process.env.OPENAI_API_KEY) {
+        return { data: fallback, tokens: 0 };
+    }
+    try {
+        const openai = getClient(userApiKey);
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            max_tokens: 800,
+            response_format: { type: "json_object" },
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt },
+            ],
+        });
+        const raw = completion.choices[0]?.message?.content || "{}";
+        return {
+            data: JSON.parse(raw),
+            tokens: completion.usage?.total_tokens || 0,
+        };
+    }
+    catch {
+        return { data: fallback, tokens: 0 };
+    }
+}
+async function viralHookIntelligence(niche, samplePosts, userApiKey) {
+    const corpus = samplePosts.join(" ");
+    const keywords = extractKeywords(`${niche} ${corpus}`, 10);
+    const baseScore = clampScore(55 + Math.min(samplePosts.length * 4, 20) + Math.min(keywords.length, 10));
+    const fallback = {
+        hookScore: baseScore,
+        patterns: [
+            "Contrarian opener",
+            "Specific-number claim",
+            "Outcome-first promise",
+        ],
+        optimizedHooks: [
+            `Unpopular ${niche} truth: consistency beats hacks every time.`,
+            `${niche} creators ignore this one lever and lose compounding growth.`,
+            `I tested 30 days of ${niche} content. Here is what actually moved reach.`,
+        ],
+        abVariants: [
+            { a: `Most ${niche} advice is wrong.`, b: `Most ${niche} creators are optimizing the wrong metric.` },
+            { a: `Here is the system I used to grow in ${niche}.`, b: `I replaced random posting with this ${niche} growth loop.` },
+        ],
+        topKeywords: keywords,
+    };
+    const prompt = `Niche: ${niche}
+Sample posts:
+${samplePosts.map((p, i) => `${i + 1}. ${p}`).join("\n")}`;
+    return jsonModuleCall(`Return JSON:
+{
+  "hookScore": number,
+  "patterns": string[],
+  "optimizedHooks": string[],
+  "abVariants": [{"a": string, "b": string}],
+  "topKeywords": string[]
+}
+Give high-signal actionable output.`, prompt, fallback, userApiKey).then((r) => ({
+        analysis: { ...fallback, ...r.data, hookScore: clampScore(Number(r.data?.hookScore ?? fallback.hookScore)) },
+        tokens: r.tokens,
+    }));
+}
+async function preLaunchOptimizer(draft, niche, historicalBestHours, userApiKey) {
+    const hookWords = extractKeywords(draft, 5);
+    const score = clampScore(50 + Math.min(draft.length / 6, 30) + hookWords.length * 3);
+    const bestTimes = (historicalBestHours.length ? historicalBestHours : [9, 13, 18]).map((h) => `${h}:00`);
+    const fallback = {
+        viralPotential: score,
+        engagementRange: "2.1% - 4.8%",
+        bestTimes,
+        ctaSuggestions: [
+            "End with a pointed question to trigger replies.",
+            "Ask for a specific opinion instead of generic feedback.",
+        ],
+        improvedDraft: draft,
+        weaknesses: [
+            "Hook can be sharper in first 8 words.",
+            "Add one concrete result or data point.",
+        ],
+    };
+    const prompt = `Niche: ${niche}
+Draft:
+${draft}
+
+Best posting windows (local user time): ${bestTimes.join(", ")}`;
+    return jsonModuleCall(`Return JSON:
+{
+  "viralPotential": number,
+  "engagementRange": string,
+  "bestTimes": string[],
+  "ctaSuggestions": string[],
+  "improvedDraft": string,
+  "weaknesses": string[]
+}
+Be concise and tactical.`, prompt, fallback, userApiKey).then((r) => ({
+        analysis: {
+            ...fallback,
+            ...r.data,
+            viralPotential: clampScore(Number(r.data?.viralPotential ?? fallback.viralPotential)),
+        },
+        tokens: r.tokens,
+    }));
+}
+async function nicheTrendRadar(niche, userApiKey) {
+    const keywords = extractKeywords(niche, 6);
+    const fallback = {
+        trendSignals: [
+            { topic: `${niche} workflows`, momentum: 78, opportunity: "High" },
+            { topic: `${niche} automation`, momentum: 72, opportunity: "Medium" },
+            { topic: `${niche} monetization`, momentum: 69, opportunity: "High" },
+        ],
+        watchlist: keywords,
+        recommendations: [
+            "Publish a contrarian take within 2 hours for maximum freshness.",
+            "Quote-post niche leaders with an opinionated framework.",
+        ],
+    };
+    return jsonModuleCall(`Return JSON:
+{
+  "trendSignals": [{"topic": string, "momentum": number, "opportunity": "Low"|"Medium"|"High"}],
+  "watchlist": string[],
+  "recommendations": string[]
+}`, `Niche: ${niche}`, fallback, userApiKey).then((r) => ({
+        analysis: {
+            ...fallback,
+            ...r.data,
+            trendSignals: (r.data?.trendSignals || fallback.trendSignals).map((t) => ({
+                topic: String(t.topic || ""),
+                momentum: clampScore(Number(t.momentum || 60)),
+                opportunity: ["Low", "Medium", "High"].includes(t.opportunity) ? t.opportunity : "Medium",
+            })),
+        },
+        tokens: r.tokens,
+    }));
+}
+async function growthStrategistMode(niche, goals, userApiKey) {
+    const fallback = {
+        roadmap30Days: [
+            "Week 1: clarify positioning + hooks baseline",
+            "Week 2: high-frequency commentary loop",
+            "Week 3: authority thread + lead magnet cycle",
+            "Week 4: conversion-focused content sprint",
+        ],
+        contentPillars: ["Insights", "Case studies", "Contrarian opinions"],
+        competitorBreakdown: [
+            "Top creators win by posting specific outcomes, not generic tips.",
+            "Short hooks + one concrete proof point performs best.",
+        ],
+        viralPatterns: ["Curiosity gap + specificity", "Strong opinion + audience callout"],
+        weeklyHookBank: [
+            `${niche} creators miss this compounding loop.`,
+            `I stopped doing this in ${niche} and growth accelerated.`,
+        ],
+    };
+    return jsonModuleCall(`Return JSON:
+{
+  "roadmap30Days": string[],
+  "contentPillars": string[],
+  "competitorBreakdown": string[],
+  "viralPatterns": string[],
+  "weeklyHookBank": string[]
+}`, `Niche: ${niche}
+Primary goals: ${goals}`, fallback, userApiKey).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
+}
+async function personalBrandAnalyzer(profile, tweets, userApiKey) {
+    const fallback = {
+        voiceSummary: "Educational with occasional contrarian hooks; tighten positioning language.",
+        strengths: ["Clear intent", "Consistent niche topics"],
+        weaknesses: ["Low specificity", "CTA inconsistency"],
+        positioningScore: 68,
+        bioRewrite: "Helping creators grow audience and revenue with AI-first content systems.",
+        monetizationSuggestions: ["Productized audits", "Template bundle", "Live workshop cohort"],
+    };
+    return jsonModuleCall(`Return JSON:
+{
+  "voiceSummary": string,
+  "strengths": string[],
+  "weaknesses": string[],
+  "positioningScore": number,
+  "bioRewrite": string,
+  "monetizationSuggestions": string[]
+}`, `Profile:
+${profile}
+
+Recent tweets:
+${tweets.map((t, i) => `${i + 1}. ${t}`).join("\n")}`, fallback, userApiKey).then((r) => ({
+        analysis: {
+            ...fallback,
+            ...r.data,
+            positioningScore: clampScore(Number(r.data?.positioningScore ?? fallback.positioningScore)),
+        },
+        tokens: r.tokens,
+    }));
+}
+async function threadWriterPro(topic, objective, userApiKey) {
+    const fallback = {
+        title: `${topic}: Practical thread`,
+        sections: [
+            "Hook",
+            "Context",
+            "Framework",
+            "Proof",
+            "CTA",
+        ],
+        thread: [
+            `1/ ${topic} sounds hard until you see the pattern.`,
+            `2/ Most people fail because they chase volume without a system.`,
+            `3/ Use this framework: signal -> structure -> story -> CTA.`,
+            `4/ Apply it for 14 days and track reply depth, not vanity metrics.`,
+            `5/ Want the template? Reply with "thread".`,
+        ],
+    };
+    return jsonModuleCall(`Return JSON:
+{
+  "title": string,
+  "sections": string[],
+  "thread": string[]
+}
+Output a practical high-retention thread.`, `Topic: ${topic}
+Objective: ${objective}`, fallback, userApiKey).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
+}
+async function leadMagnetGenerator(content, audience, userApiKey) {
+    const fallback = {
+        pdfOutline: ["Problem framing", "3-step system", "Checklist", "Next action"],
+        notionTemplateSections: ["Dashboard", "Weekly goals", "Content tracker", "Hook bank"],
+        checklist: ["Define niche", "Pick offer", "Ship 5 posts", "Measure conversion"],
+        miniCourseOutline: ["Module 1: Foundations", "Module 2: Content engine", "Module 3: Monetization"],
+    };
+    return jsonModuleCall(`Return JSON:
+{
+  "pdfOutline": string[],
+  "notionTemplateSections": string[],
+  "checklist": string[],
+  "miniCourseOutline": string[]
+}`, `Source content:
+${content}
+
+Target audience: ${audience}`, fallback, userApiKey).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
+}
+async function audiencePsychologyInsights(niche, audience, userApiKey) {
+    const fallback = {
+        engagementTriggers: ["Specific transformation claims", "Clear before/after contrast"],
+        saveTriggers: ["Framework lists", "Repeatable checklists"],
+        followTriggers: ["Unique POV + consistent series"],
+        emotionalHooks: ["Fear of stagnation", "Momentum and identity gain"],
+        authorityAngles: ["Proof-backed hot takes", "Operator lessons"],
+    };
+    return jsonModuleCall(`Return JSON:
+{
+  "engagementTriggers": string[],
+  "saveTriggers": string[],
+  "followTriggers": string[],
+  "emotionalHooks": string[],
+  "authorityAngles": string[]
+}`, `Niche: ${niche}
+Audience: ${audience}`, fallback, userApiKey).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
+}
+async function repurposingEngine(source, userApiKey) {
+    const fallback = {
+        linkedinPost: source,
+        newsletterDraft: `Subject: ${source.slice(0, 50)}\n\n${source}`,
+        carouselScript: ["Slide 1: Hook", "Slide 2: Problem", "Slide 3: Framework", "Slide 4: CTA"],
+        reelScript: "Hook in first 3 seconds, one core lesson, end with CTA.",
+    };
+    return jsonModuleCall(`Return JSON:
+{
+  "linkedinPost": string,
+  "newsletterDraft": string,
+  "carouselScript": string[],
+  "reelScript": string
+}`, `Repurpose this source content:
+${source}`, fallback, userApiKey).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
+}
+async function monetizationToolkit(niche, audience, userApiKey) {
+    const fallback = {
+        productIdeas: ["Template pack", "Audit service", "Mini cohort"],
+        pricingStrategy: ["Entry: $29", "Core: $149", "Premium: $499"],
+        offerPositioning: "Outcome-first positioning with clear timeframe and proof.",
+        salesThreadOutline: ["Hook", "Pain", "Method", "Proof", "Offer", "CTA"],
+        launchCalendar: ["Day 1 teaser", "Day 3 value post", "Day 5 proof", "Day 7 offer"],
+    };
+    return jsonModuleCall(`Return JSON:
+{
+  "productIdeas": string[],
+  "pricingStrategy": string[],
+  "offerPositioning": string,
+  "salesThreadOutline": string[],
+  "launchCalendar": string[]
+}`, `Niche: ${niche}
+Audience: ${audience}`, fallback, userApiKey).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
+}
+async function viralScorePredictor(draft, niche, userApiKey) {
+    const hookStrength = Math.min(25, Math.round(draft.slice(0, 80).split(" ").length * 1.8));
+    const specificity = Math.min(25, extractKeywords(draft, 8).length * 3);
+    const structure = Math.min(20, draft.includes("?") || draft.includes(":") ? 16 : 10);
+    const cta = Math.min(15, /\b(reply|comment|follow|share|save|retweet)\b/i.test(draft) ? 14 : 8);
+    const relevance = Math.min(15, extractKeywords(`${niche} ${draft}`, 6).length * 2);
+    const score = clampScore(hookStrength + specificity + structure + cta + relevance);
+    const fallback = {
+        score,
+        factors: {
+            hookStrength,
+            specificity,
+            structure,
+            cta,
+            relevance,
+        },
+        verdict: score >= 75 ? "High" : score >= 55 ? "Medium" : "Low",
+        suggestions: [
+            "Tighten first line to maximize curiosity in first 8-12 words.",
+            "Add one concrete metric or outcome to improve credibility.",
+            "Close with a specific engagement prompt.",
+        ],
+    };
+    return jsonModuleCall(`Return JSON:
+{
+  "score": number,
+  "factors": {
+    "hookStrength": number,
+    "specificity": number,
+    "structure": number,
+    "cta": number,
+    "relevance": number
+  },
+  "verdict": "Low" | "Medium" | "High",
+  "suggestions": string[]
+}`, `Niche: ${niche}
+Draft:
+${draft}`, fallback, userApiKey).then((r) => ({
+        analysis: {
+            ...fallback,
+            ...r.data,
+            score: clampScore(Number(r.data?.score ?? fallback.score)),
+        },
+        tokens: r.tokens,
+    }));
+}
+async function bestTimeToPost(niche, historicalBestHours, userApiKey) {
+    const topHours = (historicalBestHours.length ? historicalBestHours : [9, 13, 18]).slice(0, 5);
+    const fallback = {
+        topWindows: topHours.map((h) => `${h}:00`),
+        timezoneNote: "Uses your local timezone from request header.",
+        rationale: [
+            "Peak usage windows from your recent activity patterns.",
+            `Strong fit for ${niche} audience behavior cycles.`,
+        ],
+        postingPlan: [
+            "Primary slot: highest historical conversion window.",
+            "Secondary slot: backup testing window.",
+            "Use first 10 minutes for engagement responses.",
+        ],
+    };
+    return jsonModuleCall(`Return JSON:
+{
+  "topWindows": string[],
+  "timezoneNote": string,
+  "rationale": string[],
+  "postingPlan": string[]
+}`, `Niche: ${niche}
+Historical top hours: ${topHours.join(", ")}`, fallback, userApiKey).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
+}
+async function contentPerformancePrediction(draft, niche, historicalBestHours, userApiKey) {
+    const pre = await preLaunchOptimizer(draft, niche, historicalBestHours, userApiKey);
+    const score = clampScore(Number(pre.analysis?.viralPotential ?? 60));
+    return {
+        analysis: {
+            predictedRange: pre.analysis?.engagementRange || "1.8% - 4.2%",
+            confidence: score >= 75 ? "High" : score >= 55 ? "Medium" : "Low",
+            recommendedTimes: pre.analysis?.bestTimes || ["9:00", "13:00", "18:00"],
+            editActions: pre.analysis?.weaknesses || [],
+            optimizedDraft: pre.analysis?.improvedDraft || draft,
+            predictedScore: score,
+        },
+        tokens: pre.tokens,
+    };
 }

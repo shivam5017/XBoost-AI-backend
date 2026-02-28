@@ -4,6 +4,7 @@ import {
   cancelSubscription,
   createCheckout,
   createPortal,
+  getFeatureCatalog,
   getPaymentHistory,
   getPlanCatalog,
   getSubscription,
@@ -17,6 +18,7 @@ router.post("/webhook", handleWebhook);
 
 router.use(authenticate);
 router.get("/plans", getPlanCatalog);
+router.get("/features", getFeatureCatalog);
 router.get("/subscription", getSubscription);
 router.get("/payments", getPaymentHistory);
 router.post("/checkout", createCheckout);

@@ -6,9 +6,9 @@ exports.getActivity = getActivity;
 const db_1 = require("../lib/db");
 const analytics_service_1 = require("../services/analytics.service");
 const streak_service_1 = require("../services/streak.service");
-const enums_1 = require("../lib/generated/prisma/enums");
 const usage_service_1 = require("../services/usage.service");
 const timezone_1 = require("../utils/timezone");
+const billing_service_1 = require("../services/billing.service");
 function localDateKey(date, timeZone) {
     return new Intl.DateTimeFormat("en-CA", {
         timeZone,
@@ -25,7 +25,8 @@ function localDayLabel(date, timeZone) {
 }
 async function requireProAnalytics(req, res) {
     const planId = await (0, usage_service_1.getEffectivePlan)(req.userId);
-    if (planId !== enums_1.PlanId.pro) {
+    const allowed = await (0, billing_service_1.hasFeatureAccess)(req.userId, "analytics");
+    if (!allowed) {
         res.status(403).json({
             error: "Analytics dashboard is available on Pro plan only.",
             code: "ANALYTICS_PRO_REQUIRED",

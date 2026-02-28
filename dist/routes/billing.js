@@ -7,6 +7,7 @@ const router = (0, express_1.Router)();
 router.post("/webhook", billing_controller_1.handleWebhook);
 router.use(auth_1.authenticate);
 router.get("/plans", billing_controller_1.getPlanCatalog);
+router.get("/features", billing_controller_1.getFeatureCatalog);
 router.get("/subscription", billing_controller_1.getSubscription);
 router.get("/payments", billing_controller_1.getPaymentHistory);
 router.post("/checkout", billing_controller_1.createCheckout);

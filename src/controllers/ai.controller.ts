@@ -5,6 +5,7 @@ import * as AIService from '../services/ai.service';
 import { consumeDailyReplyQuota, consumeDailyTweetQuota } from '../services/usage.service';
 import { readTimezoneFromRequest, startOfDayUtcForTimezone } from '../utils/timezone';
 import { getProviderApiKey } from "../services/apikey.service";
+import { hasFeatureAccess, FeatureId } from "../services/billing.service";
 
 async function getUserApiKey(userId: string): Promise<string | null> {
   const user = await prisma.user.findUnique({
@@ -21,6 +22,43 @@ async function getUserApiKey(userId: string): Promise<string | null> {
 
 async function trackUsage(userId: string, endpoint: string, tokens: number): Promise<void> {
   await prisma.aIUsage.create({ data: { userId, endpoint, tokens } });
+}
+
+async function requireFeature(
+  req: AuthRequest,
+  res: Response,
+  featureId: FeatureId,
+): Promise<boolean> {
+  const allowed = await hasFeatureAccess(req.userId!, featureId);
+  if (!allowed) {
+    res.status(402).json({
+      error: "Feature locked for current plan. Upgrade required.",
+      code: "FEATURE_LOCKED",
+      featureId,
+    });
+    return false;
+  }
+  return true;
+}
+
+async function bestPostingHoursForUser(userId: string): Promise<number[]> {
+  const usage = await prisma.aIUsage.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: 500,
+    select: { createdAt: true },
+  });
+  if (!usage.length) return [9, 13, 18];
+
+  const counts = new Array<number>(24).fill(0);
+  for (const item of usage) counts[item.createdAt.getUTCHours()] += 1;
+
+  return counts
+    .map((count, hour) => ({ count, hour }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3)
+    .map((x) => x.hour)
+    .sort((a, b) => a - b);
 }
 
 async function updateDailyStats(
@@ -228,4 +266,196 @@ export async function markPosted(req: AuthRequest, res: Response): Promise<void>
 // ── GET /ai/templates ─────────────────────────────────────────────────────────
 export async function getTemplates(_req: AuthRequest, res: Response): Promise<void> {
   res.json(AIService.TEMPLATES);
+}
+
+export async function viralHookIntel(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "viralHookIntelligence"))) return;
+
+  const { niche = "", samplePosts = [] } = req.body || {};
+  if (!niche.trim()) {
+    res.status(400).json({ error: "niche required" });
+    return;
+  }
+
+  const userApiKey = await getUserApiKey(req.userId!);
+  const posts = Array.isArray(samplePosts) ? samplePosts.slice(0, 20).map(String) : [];
+  const { analysis, tokens } = await AIService.viralHookIntelligence(
+    niche.trim(),
+    posts,
+    userApiKey,
+  );
+  await trackUsage(req.userId!, "/ai/viral-hook-intel", tokens);
+  res.json(analysis);
+}
+
+export async function preLaunchOptimize(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "preLaunchOptimizer"))) return;
+
+  const { draft = "", niche = "" } = req.body || {};
+  if (!draft.trim()) {
+    res.status(400).json({ error: "draft required" });
+    return;
+  }
+
+  const userApiKey = await getUserApiKey(req.userId!);
+  const bestHours = await bestPostingHoursForUser(req.userId!);
+  const { analysis, tokens } = await AIService.preLaunchOptimizer(
+    String(draft),
+    String(niche || "general growth"),
+    bestHours,
+    userApiKey,
+  );
+  await trackUsage(req.userId!, "/ai/prelaunch-optimize", tokens);
+  res.json(analysis);
+}
+
+export async function viralScore(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "viralScorePredictor"))) return;
+  const { draft = "", niche = "" } = req.body || {};
+  if (!draft.trim()) {
+    res.status(400).json({ error: "draft required" });
+    return;
+  }
+  const userApiKey = await getUserApiKey(req.userId!);
+  const { analysis, tokens } = await AIService.viralScorePredictor(String(draft), String(niche || "general growth"), userApiKey);
+  await trackUsage(req.userId!, "/ai/viral-score", tokens);
+  res.json(analysis);
+}
+
+export async function bestTimePost(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "bestTimeToPost"))) return;
+  const { niche = "" } = req.body || {};
+  if (!niche.trim()) {
+    res.status(400).json({ error: "niche required" });
+    return;
+  }
+  const userApiKey = await getUserApiKey(req.userId!);
+  const bestHours = await bestPostingHoursForUser(req.userId!);
+  const { analysis, tokens } = await AIService.bestTimeToPost(String(niche), bestHours, userApiKey);
+  await trackUsage(req.userId!, "/ai/best-time-post", tokens);
+  res.json(analysis);
+}
+
+export async function contentPredict(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "contentPerformancePrediction"))) return;
+  const { draft = "", niche = "" } = req.body || {};
+  if (!draft.trim()) {
+    res.status(400).json({ error: "draft required" });
+    return;
+  }
+  const userApiKey = await getUserApiKey(req.userId!);
+  const bestHours = await bestPostingHoursForUser(req.userId!);
+  const { analysis, tokens } = await AIService.contentPerformancePrediction(
+    String(draft),
+    String(niche || "general growth"),
+    bestHours,
+    userApiKey,
+  );
+  await trackUsage(req.userId!, "/ai/content-predict", tokens);
+  res.json(analysis);
+}
+
+export async function trendRadar(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "nicheTrendRadar"))) return;
+  const { niche = "" } = req.body || {};
+  if (!niche.trim()) {
+    res.status(400).json({ error: "niche required" });
+    return;
+  }
+  const userApiKey = await getUserApiKey(req.userId!);
+  const { analysis, tokens } = await AIService.nicheTrendRadar(String(niche), userApiKey);
+  await trackUsage(req.userId!, "/ai/trend-radar", tokens);
+  res.json(analysis);
+}
+
+export async function growthStrategist(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "growthStrategist"))) return;
+  const { niche = "", goals = "" } = req.body || {};
+  if (!niche.trim()) {
+    res.status(400).json({ error: "niche required" });
+    return;
+  }
+  const userApiKey = await getUserApiKey(req.userId!);
+  const { analysis, tokens } = await AIService.growthStrategistMode(String(niche), String(goals || "Audience growth"), userApiKey);
+  await trackUsage(req.userId!, "/ai/growth-strategist", tokens);
+  res.json(analysis);
+}
+
+export async function brandAnalyzer(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "brandAnalyzer"))) return;
+  const { profile = "", tweets = [] } = req.body || {};
+  if (!profile.trim()) {
+    res.status(400).json({ error: "profile required" });
+    return;
+  }
+  const userApiKey = await getUserApiKey(req.userId!);
+  const list = Array.isArray(tweets) ? tweets.slice(0, 20).map(String) : [];
+  const { analysis, tokens } = await AIService.personalBrandAnalyzer(String(profile), list, userApiKey);
+  await trackUsage(req.userId!, "/ai/brand-analyzer", tokens);
+  res.json(analysis);
+}
+
+export async function threadWriterPro(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "threadWriterPro"))) return;
+  const { topic = "", objective = "" } = req.body || {};
+  if (!topic.trim()) {
+    res.status(400).json({ error: "topic required" });
+    return;
+  }
+  const userApiKey = await getUserApiKey(req.userId!);
+  const { analysis, tokens } = await AIService.threadWriterPro(String(topic), String(objective || "Engagement + conversion"), userApiKey);
+  await trackUsage(req.userId!, "/ai/thread-pro", tokens);
+  res.json(analysis);
+}
+
+export async function leadMagnet(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "leadMagnetGenerator"))) return;
+  const { content = "", audience = "" } = req.body || {};
+  if (!content.trim()) {
+    res.status(400).json({ error: "content required" });
+    return;
+  }
+  const userApiKey = await getUserApiKey(req.userId!);
+  const { analysis, tokens } = await AIService.leadMagnetGenerator(String(content), String(audience || "creators"), userApiKey);
+  await trackUsage(req.userId!, "/ai/lead-magnet", tokens);
+  res.json(analysis);
+}
+
+export async function audiencePsychology(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "audiencePsychology"))) return;
+  const { niche = "", audience = "" } = req.body || {};
+  if (!niche.trim()) {
+    res.status(400).json({ error: "niche required" });
+    return;
+  }
+  const userApiKey = await getUserApiKey(req.userId!);
+  const { analysis, tokens } = await AIService.audiencePsychologyInsights(String(niche), String(audience || "creators on X"), userApiKey);
+  await trackUsage(req.userId!, "/ai/audience-psychology", tokens);
+  res.json(analysis);
+}
+
+export async function repurposeContent(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "repurposingEngine"))) return;
+  const { source = "" } = req.body || {};
+  if (!source.trim()) {
+    res.status(400).json({ error: "source required" });
+    return;
+  }
+  const userApiKey = await getUserApiKey(req.userId!);
+  const { analysis, tokens } = await AIService.repurposingEngine(String(source), userApiKey);
+  await trackUsage(req.userId!, "/ai/repurpose", tokens);
+  res.json(analysis);
+}
+
+export async function monetizationToolkit(req: AuthRequest, res: Response): Promise<void> {
+  if (!(await requireFeature(req, res, "monetizationToolkit"))) return;
+  const { niche = "", audience = "" } = req.body || {};
+  if (!niche.trim()) {
+    res.status(400).json({ error: "niche required" });
+    return;
+  }
+  const userApiKey = await getUserApiKey(req.userId!);
+  const { analysis, tokens } = await AIService.monetizationToolkit(String(niche), String(audience || "creator audience"), userApiKey);
+  await trackUsage(req.userId!, "/ai/monetization-toolkit", tokens);
+  res.json(analysis);
 }

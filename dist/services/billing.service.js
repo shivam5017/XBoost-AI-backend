@@ -8,6 +8,9 @@ exports.createCustomerPortalSession = createCustomerPortalSession;
 exports.getBillingSnapshot = getBillingSnapshot;
 exports.listPayments = listPayments;
 exports.getPlans = getPlans;
+exports.getFeatureCatalogForPlan = getFeatureCatalogForPlan;
+exports.getFeatureCatalogForUser = getFeatureCatalogForUser;
+exports.hasFeatureAccess = hasFeatureAccess;
 exports.hasPaidAccess = hasPaidAccess;
 exports.cancelSubscriptionAtPeriodEnd = cancelSubscriptionAtPeriodEnd;
 exports.unwrapDodoWebhook = unwrapDodoWebhook;
@@ -17,27 +20,175 @@ const dodopayments_1 = __importDefault(require("dodopayments"));
 const db_1 = require("../lib/db");
 const enums_1 = require("../lib/generated/prisma/enums");
 const usage_service_1 = require("./usage.service");
+const FEATURE_CATALOG = [
+    {
+        id: "viralScorePredictor",
+        name: "Viral Score Predictor",
+        description: "Score post virality probability with factor-level breakdown before publishing.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.starter,
+    },
+    {
+        id: "bestTimeToPost",
+        name: "Best Time to Post",
+        description: "Recommend top posting windows using behavior and performance patterns.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.starter,
+    },
+    {
+        id: "contentPerformancePrediction",
+        name: "Content Performance Prediction",
+        description: "Forecast engagement range and recommend edits to improve expected outcomes.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.starter,
+    },
+    {
+        id: "viralHookIntelligence",
+        name: "Viral Hook Intelligence Engine",
+        description: "Analyze top niche hooks, score hook quality, and generate A/B hook variants.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.starter,
+    },
+    {
+        id: "preLaunchOptimizer",
+        name: "Pre-Launch Optimizer",
+        description: "Predict engagement range, optimize CTA, and suggest best posting windows before publishing.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.starter,
+    },
+    {
+        id: "analytics",
+        name: "Analytics Dashboard",
+        description: "Growth trend graph, hook-type performance, and engagement efficiency metrics on web.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+    },
+    {
+        id: "nicheTrendRadar",
+        name: "Niche Trend Radar",
+        description: "Track X niche momentum and surface early trend opportunities.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+    },
+    {
+        id: "growthStrategist",
+        name: "AI Growth Strategist Mode",
+        description: "30-day roadmap, content pillars, hook bank, and competitor-based strategy guidance.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+    },
+    {
+        id: "brandAnalyzer",
+        name: "AI Personal Brand Analyzer",
+        description: "Brand voice audit, positioning score, bio rewrite, and monetization direction.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+    },
+    {
+        id: "threadWriterPro",
+        name: "AI Thread Writer Pro+",
+        description: "Story arc, contrarian angle prompts, CTA layering, and monetization insertion.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+    },
+    {
+        id: "leadMagnetGenerator",
+        name: "Auto Lead Magnet Generator",
+        description: "Convert content into PDFs, checklists, Notion assets, and mini-course outlines.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+    },
+    {
+        id: "audiencePsychology",
+        name: "Audience Psychology Insights",
+        description: "Identify emotional and authority triggers that drive follows, saves, and replies.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+    },
+    {
+        id: "repurposingEngine",
+        name: "AI Content Repurposing Engine",
+        description: "Repurpose X threads into LinkedIn posts, carousels, newsletters, and short-video scripts.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+    },
+    {
+        id: "monetizationToolkit",
+        name: "Creator Monetization Toolkit",
+        description: "Offer ideas, pricing strategy, sales threads, and launch calendar planning.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+    },
+];
 const PLAN_CATALOG = {
     [enums_1.PlanId.free]: {
         id: enums_1.PlanId.free,
         name: "Free",
         price: 0,
         limits: { dailyReplies: 5, dailyTweets: 2 },
-        features: { tweets: true, analytics: false },
+        features: {
+            tweets: true,
+            analytics: false,
+            viralScorePredictor: false,
+            bestTimeToPost: false,
+            contentPerformancePrediction: false,
+            viralHookIntelligence: false,
+            preLaunchOptimizer: false,
+            nicheTrendRadar: false,
+            growthStrategist: false,
+            brandAnalyzer: false,
+            threadWriterPro: false,
+            leadMagnetGenerator: false,
+            audiencePsychology: false,
+            repurposingEngine: false,
+            monetizationToolkit: false,
+        },
     },
     [enums_1.PlanId.starter]: {
         id: enums_1.PlanId.starter,
         name: "Starter",
         price: 4.99,
         limits: { dailyReplies: null, dailyTweets: null },
-        features: { tweets: true, analytics: false },
+        features: {
+            tweets: true,
+            analytics: false,
+            viralScorePredictor: true,
+            bestTimeToPost: true,
+            contentPerformancePrediction: true,
+            viralHookIntelligence: true,
+            preLaunchOptimizer: true,
+            nicheTrendRadar: false,
+            growthStrategist: false,
+            brandAnalyzer: false,
+            threadWriterPro: false,
+            leadMagnetGenerator: false,
+            audiencePsychology: false,
+            repurposingEngine: false,
+            monetizationToolkit: false,
+        },
     },
     [enums_1.PlanId.pro]: {
         id: enums_1.PlanId.pro,
         name: "Pro",
         price: 9.99,
         limits: { dailyReplies: null, dailyTweets: null },
-        features: { tweets: true, analytics: true },
+        features: {
+            tweets: true,
+            analytics: true,
+            viralScorePredictor: true,
+            bestTimeToPost: true,
+            contentPerformancePrediction: true,
+            viralHookIntelligence: true,
+            preLaunchOptimizer: true,
+            nicheTrendRadar: true,
+            growthStrategist: true,
+            brandAnalyzer: true,
+            threadWriterPro: true,
+            leadMagnetGenerator: true,
+            audiencePsychology: true,
+            repurposingEngine: true,
+            monetizationToolkit: true,
+        },
     },
 };
 const tableAvailabilityCache = {};
@@ -339,6 +490,9 @@ async function createCustomerPortalSession(input) {
 async function getBillingSnapshot(userId, timeZone = "UTC") {
     const subscription = await ensureSubscriptionRow(userId);
     const usage = await getTodayUsage(userId, timeZone);
+    const effectivePlan = isPaidSubscription(subscription.planId, subscription.status, subscription.currentPeriodEnd, subscription.gracePeriodEnds)
+        ? subscription.planId
+        : enums_1.PlanId.free;
     return {
         subscription: {
             planId: subscription.planId,
@@ -349,6 +503,7 @@ async function getBillingSnapshot(userId, timeZone = "UTC") {
             isPaidActive: isPaidSubscription(subscription.planId, subscription.status, subscription.currentPeriodEnd, subscription.gracePeriodEnds),
         },
         plan: PLAN_CATALOG[subscription.planId],
+        features: getFeatureCatalogForPlan(effectivePlan),
         usage,
     };
 }
@@ -382,6 +537,30 @@ async function listPayments(userId, limit = 20) {
 }
 function getPlans() {
     return [PLAN_CATALOG.free, PLAN_CATALOG.starter, PLAN_CATALOG.pro];
+}
+function hasPlanFeature(planId, featureId) {
+    if (featureId === "analytics") {
+        return PLAN_CATALOG[planId].features.analytics;
+    }
+    return Boolean(PLAN_CATALOG[planId].features[featureId]);
+}
+function getFeatureCatalogForPlan(planId) {
+    return FEATURE_CATALOG.map((feature) => ({
+        ...feature,
+        enabled: hasPlanFeature(planId, feature.id),
+    }));
+}
+async function getFeatureCatalogForUser(userId) {
+    const subscription = await ensureSubscriptionRow(userId);
+    const effectivePlan = isPaidSubscription(subscription.planId, subscription.status, subscription.currentPeriodEnd, subscription.gracePeriodEnds)
+        ? subscription.planId
+        : enums_1.PlanId.free;
+    return getFeatureCatalogForPlan(effectivePlan);
+}
+async function hasFeatureAccess(userId, featureId) {
+    const features = await getFeatureCatalogForUser(userId);
+    const target = features.find((f) => f.id === featureId);
+    return Boolean(target?.enabled);
 }
 async function getTodayUsage(userId, timeZone = "UTC") {
     const hasTable = await isBillingTableAvailable("DailyStats");

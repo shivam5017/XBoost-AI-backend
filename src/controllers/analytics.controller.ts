@@ -3,9 +3,9 @@ import { AuthRequest } from "../middleware/auth";
 import { prisma } from "../lib/db";
 import { computeWeeklyAnalytics } from "../services/analytics.service";
 import { updateStreak } from "../services/streak.service";
-import { PlanId } from "../lib/generated/prisma/enums";
 import { getEffectivePlan } from "../services/usage.service";
 import { dayRangeUtcForTimezone, readTimezoneFromRequest } from "../utils/timezone";
+import { hasFeatureAccess } from "../services/billing.service";
 
 function localDateKey(date: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -25,7 +25,8 @@ function localDayLabel(date: Date, timeZone: string): string {
 
 async function requireProAnalytics(req: AuthRequest, res: Response): Promise<boolean> {
   const planId = await getEffectivePlan(req.userId!);
-  if (planId !== PlanId.pro) {
+  const allowed = await hasFeatureAccess(req.userId!, "analytics");
+  if (!allowed) {
     res.status(403).json({
       error: "Analytics dashboard is available on Pro plan only.",
       code: "ANALYTICS_PRO_REQUIRED",
