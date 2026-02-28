@@ -15,6 +15,10 @@ const PORT = process.env.PORT || 4500;
 
 app.set("trust proxy", 1);
 
+/* ────────────────────────────────────────────────
+   CORS CONFIG (CLEAN + COOKIE SAFE)
+──────────────────────────────────────────────── */
+
 const baseAllowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
@@ -26,13 +30,15 @@ const envAllowedOrigins = (process.env.CORS_ORIGINS || "")
   .map((v) => v.trim())
   .filter(Boolean);
 
-const allowedOrigins = new Set([...baseAllowedOrigins, ...envAllowedOrigins]);
+const allowedOrigins = new Set([
+  ...baseAllowedOrigins,
+  ...envAllowedOrigins,
+]);
 
 function isOriginAllowed(origin: string): boolean {
   if (allowedOrigins.has(origin)) return true;
-  if (origin.startsWith("chrome-extension://")) return true;
 
-  // Allow Netlify preview URLs and www variants in production.
+  // Allow Netlify preview URLs
   if (/^https:\/\/([a-z0-9-]+\.)*netlify\.app$/i.test(origin)) return true;
 
   return false;
@@ -43,56 +49,35 @@ const corsOptions: cors.CorsOptions = {
     if (!origin) return callback(null, true);
 
     if (isOriginAllowed(origin)) {
-      return callback(null, true);
+      return callback(null, origin); // IMPORTANT: return exact origin
     }
 
     return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
-  credentials: true,
+  credentials: true, // REQUIRED for cookies
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 204,
 };
 
-// Explicit CORS headers for production proxies/CDNs.
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-
-  if (origin && isOriginAllowed(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Vary", "Origin");
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header(
-      "Access-Control-Allow-Methods",
-      "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-    );
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  }
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-
-  return next();
-});
-
 app.use(cors(corsOptions));
-app.options(/.*/, cors(corsOptions));
+app.options("*", cors(corsOptions));
 
-// ─── Dodo Webhook — RAW body ──────────────────────────────────────────────────
-// CRITICAL: must be registered BEFORE express.json().
-// Dodo webhook verification validates against the raw request body.
-// header against the raw request body. Parsing it as JSON first will break
-// signature verification and return 401 for every webhook.
+/* ────────────────────────────────────────────────
+   RAW BODY FOR WEBHOOK (BEFORE JSON PARSER)
+──────────────────────────────────────────────── */
 
 app.use("/billing/webhook", express.raw({ type: "application/json" }));
 
-// ─── General Middleware ───────────────────────────────────────────────────────
+/* ────────────────────────────────────────────────
+   GENERAL MIDDLEWARE
+──────────────────────────────────────────────── */
 
 app.use(cookieParser());
 app.use(express.json());
 
-// ─── Rate Limiter ─────────────────────────────────────────────────────────────
+/* ────────────────────────────────────────────────
+   RATE LIMITER
+──────────────────────────────────────────────── */
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -103,7 +88,9 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
+/* ────────────────────────────────────────────────
+   ROUTES
+──────────────────────────────────────────────── */
 
 app.use("/auth", authRoutes);
 app.use("/ai", aiRoutes);
@@ -116,7 +103,9 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", version: "1.0.0" });
 });
 
-// ─── Start ────────────────────────────────────────────────────────────────────
+/* ────────────────────────────────────────────────
+   START SERVER
+──────────────────────────────────────────────── */
 
 app.listen(PORT, () => {
   console.log(`🚀 XBoost AI Server running on port ${PORT}`);
