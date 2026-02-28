@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
+import dotenv from "dotenv";
 
 import authRoutes from "./routes/auth";
 import aiRoutes from "./routes/ai";
@@ -10,14 +11,14 @@ import streakRoutes from "./routes/streak";
 import replyRoutes from "./routes/reply";
 import billingRoutes from "./routes/billing";
 
+dotenv.config();
+
 const app = express();
 const PORT = process.env.PORT || 4500;
 
 app.set("trust proxy", 1);
 
-/* ────────────────────────────────────────────────
-   CORS CONFIG (CLEAN + COOKIE SAFE)
-──────────────────────────────────────────────── */
+/* ───────────────── CORS CONFIG ───────────────── */
 
 const baseAllowedOrigins = [
   "http://localhost:5173",
@@ -34,15 +35,15 @@ const allowedOrigins = new Set([
   ...baseAllowedOrigins,
   ...envAllowedOrigins,
 ]);
+
 const allowAllCors = process.env.CORS_ALLOW_ALL === "true";
 
 function isOriginAllowed(origin: string): boolean {
   if (allowAllCors) return true;
   if (allowedOrigins.has(origin)) return true;
 
-  // Allow extension and Netlify preview URLs.
   if (origin.startsWith("chrome-extension://")) return true;
-  if (/^https:\/\/([a-z0-9-]+\.)*netlify\.app(?::\d+)?$/i.test(origin)) return true;
+  if (/^https:\/\/([a-z0-9-]+\.)*netlify\.app$/i.test(origin)) return true;
 
   return false;
 }
@@ -52,22 +53,21 @@ const corsOptions: cors.CorsOptions = {
     if (!origin) return callback(null, true);
 
     if (isOriginAllowed(origin)) {
-      return callback(null, origin); // IMPORTANT: return exact origin
+      return callback(null, origin);
     }
 
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
+    return callback(new Error(`CORS blocked: ${origin}`));
   },
-  credentials: true, // REQUIRED for cookies
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
 };
 
-// Force CORS headers early to handle proxy/cold-start/preflight edge-cases on Render.
+/* ───────────────── FORCE PREFLIGHT FIX ───────────────── */
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+
   if (origin && isOriginAllowed(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
-    res.header("Vary", "Origin");
     res.header("Access-Control-Allow-Credentials", "true");
     res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
     res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -77,41 +77,34 @@ app.use((req, res, next) => {
     return res.sendStatus(204);
   }
 
-  return next();
+  next();
 });
 
 app.use(cors(corsOptions));
-app.options(/.*/, cors(corsOptions));
+app.options("*", cors(corsOptions));
 
-/* ────────────────────────────────────────────────
-   RAW BODY FOR WEBHOOK (BEFORE JSON PARSER)
-──────────────────────────────────────────────── */
+/* ───────── RAW BODY FOR BILLING WEBHOOK ───────── */
 
 app.use("/billing/webhook", express.raw({ type: "application/json" }));
 
-/* ────────────────────────────────────────────────
-   GENERAL MIDDLEWARE
-──────────────────────────────────────────────── */
+/* ───────────────── MIDDLEWARE ───────────────── */
 
 app.use(cookieParser());
 app.use(express.json());
 
-/* ────────────────────────────────────────────────
-   RATE LIMITER
-──────────────────────────────────────────────── */
+/* ───────────────── RATE LIMIT ───────────────── */
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { error: "Too many requests" },
-  skip: (req) => req.method === "OPTIONS",
-});
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { error: "Too many requests" },
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+);
 
-app.use(limiter);
-
-/* ────────────────────────────────────────────────
-   ROUTES
-──────────────────────────────────────────────── */
+/* ───────────────── ROUTES ───────────────── */
 
 app.use("/auth", authRoutes);
 app.use("/ai", aiRoutes);
@@ -121,15 +114,13 @@ app.use("/reply", replyRoutes);
 app.use("/billing", billingRoutes);
 
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", version: "1.0.0" });
+  res.json({ status: "ok" });
 });
 
-/* ────────────────────────────────────────────────
-   START SERVER
-──────────────────────────────────────────────── */
+/* ───────────────── START SERVER ───────────────── */
 
 app.listen(PORT, () => {
-  console.log(`🚀 XBoost AI Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
 
 export default app;
