@@ -56,9 +56,13 @@ const corsOptions: cors.CorsOptions = {
       return callback(null, origin);
     }
 
-    return callback(new Error(`CORS blocked: ${origin}`));
+    return callback(null, false);
   },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
+  preflightContinue: false,
 };
 
 /* ───────────────── FORCE PREFLIGHT FIX ───────────────── */
