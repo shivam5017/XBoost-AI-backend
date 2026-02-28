@@ -16,6 +16,9 @@ const billing_1 = __importDefault(require("./routes/billing"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4500;
 app.set("trust proxy", 1);
+/* ────────────────────────────────────────────────
+   CORS CONFIG (CLEAN + COOKIE SAFE)
+──────────────────────────────────────────────── */
 const baseAllowedOrigins = [
     "http://localhost:5173",
     "http://localhost:3000",
@@ -25,14 +28,20 @@ const envAllowedOrigins = (process.env.CORS_ORIGINS || "")
     .split(",")
     .map((v) => v.trim())
     .filter(Boolean);
-const allowedOrigins = new Set([...baseAllowedOrigins, ...envAllowedOrigins]);
+const allowedOrigins = new Set([
+    ...baseAllowedOrigins,
+    ...envAllowedOrigins,
+]);
+const allowAllCors = process.env.CORS_ALLOW_ALL === "true";
 function isOriginAllowed(origin) {
+    if (allowAllCors)
+        return true;
     if (allowedOrigins.has(origin))
         return true;
+    // Allow extension and Netlify preview URLs.
     if (origin.startsWith("chrome-extension://"))
         return true;
-    // Allow Netlify preview URLs and www variants in production.
-    if (/^https:\/\/([a-z0-9-]+\.)*netlify\.app$/i.test(origin))
+    if (/^https:\/\/([a-z0-9-]+\.)*netlify\.app(?::\d+)?$/i.test(origin))
         return true;
     return false;
 }
@@ -41,16 +50,15 @@ const corsOptions = {
         if (!origin)
             return callback(null, true);
         if (isOriginAllowed(origin)) {
-            return callback(null, true);
+            return callback(null, origin); // IMPORTANT: return exact origin
         }
         return callback(new Error(`CORS blocked for origin: ${origin}`));
     },
-    credentials: true,
+    credentials: true, // REQUIRED for cookies
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    optionsSuccessStatus: 204,
 };
-// Explicit CORS headers for production proxies/CDNs.
+// Force CORS headers early to handle proxy/cold-start/preflight edge-cases on Render.
 app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (origin && isOriginAllowed(origin)) {
@@ -67,16 +75,18 @@ app.use((req, res, next) => {
 });
 app.use((0, cors_1.default)(corsOptions));
 app.options(/.*/, (0, cors_1.default)(corsOptions));
-// ─── Dodo Webhook — RAW body ──────────────────────────────────────────────────
-// CRITICAL: must be registered BEFORE express.json().
-// Dodo webhook verification validates against the raw request body.
-// header against the raw request body. Parsing it as JSON first will break
-// signature verification and return 401 for every webhook.
+/* ────────────────────────────────────────────────
+   RAW BODY FOR WEBHOOK (BEFORE JSON PARSER)
+──────────────────────────────────────────────── */
 app.use("/billing/webhook", express_1.default.raw({ type: "application/json" }));
-// ─── General Middleware ───────────────────────────────────────────────────────
+/* ────────────────────────────────────────────────
+   GENERAL MIDDLEWARE
+──────────────────────────────────────────────── */
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json());
-// ─── Rate Limiter ─────────────────────────────────────────────────────────────
+/* ────────────────────────────────────────────────
+   RATE LIMITER
+──────────────────────────────────────────────── */
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -84,7 +94,9 @@ const limiter = (0, express_rate_limit_1.default)({
     skip: (req) => req.method === "OPTIONS",
 });
 app.use(limiter);
-// ─── Routes ───────────────────────────────────────────────────────────────────
+/* ────────────────────────────────────────────────
+   ROUTES
+──────────────────────────────────────────────── */
 app.use("/auth", auth_1.default);
 app.use("/ai", ai_1.default);
 app.use("/analytics", analytics_1.default);
@@ -94,7 +106,9 @@ app.use("/billing", billing_1.default);
 app.get("/health", (_req, res) => {
     res.json({ status: "ok", version: "1.0.0" });
 });
-// ─── Start ────────────────────────────────────────────────────────────────────
+/* ────────────────────────────────────────────────
+   START SERVER
+──────────────────────────────────────────────── */
 app.listen(PORT, () => {
     console.log(`🚀 XBoost AI Server running on port ${PORT}`);
 });

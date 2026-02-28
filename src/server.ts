@@ -34,12 +34,15 @@ const allowedOrigins = new Set([
   ...baseAllowedOrigins,
   ...envAllowedOrigins,
 ]);
+const allowAllCors = process.env.CORS_ALLOW_ALL === "true";
 
 function isOriginAllowed(origin: string): boolean {
+  if (allowAllCors) return true;
   if (allowedOrigins.has(origin)) return true;
 
-  // Allow Netlify preview URLs
-  if (/^https:\/\/([a-z0-9-]+\.)*netlify\.app$/i.test(origin)) return true;
+  // Allow extension and Netlify preview URLs.
+  if (origin.startsWith("chrome-extension://")) return true;
+  if (/^https:\/\/([a-z0-9-]+\.)*netlify\.app(?::\d+)?$/i.test(origin)) return true;
 
   return false;
 }
@@ -59,8 +62,26 @@ const corsOptions: cors.CorsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
+// Force CORS headers early to handle proxy/cold-start/preflight edge-cases on Render.
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && isOriginAllowed(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Vary", "Origin");
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  }
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  return next();
+});
+
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 /* ────────────────────────────────────────────────
    RAW BODY FOR WEBHOOK (BEFORE JSON PARSER)
