@@ -33,7 +33,7 @@ const aiLimiter = rateLimit({
 const router = Router();
 router.use(authenticate);
 
-router.get('/templates',     getTemplates);          // no rate limit — just data
+router.get('/templates',     getTemplates);          
 router.post('/reply',        aiLimiter, generateReply);
 router.post('/analyze',      aiLimiter, analyzeTweet);
 router.post('/create',       aiLimiter, createTweet);
