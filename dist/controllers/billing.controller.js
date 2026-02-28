@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCheckout = createCheckout;
+exports.syncCheckout = syncCheckout;
 exports.createPortal = createPortal;
 exports.getPlanCatalog = getPlanCatalog;
 exports.getSubscription = getSubscription;
@@ -19,6 +20,9 @@ const checkoutSchema = zod_1.z.object({
 const paymentListSchema = zod_1.z.object({
     limit: zod_1.z.coerce.number().int().min(1).max(100).optional(),
 });
+const syncCheckoutSchema = zod_1.z.object({
+    checkoutId: zod_1.z.string().min(1),
+});
 async function createCheckout(req, res) {
     const parsed = checkoutSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -35,11 +39,20 @@ async function createCheckout(req, res) {
         return res.status(404).json({ error: "User not found" });
     }
     try {
+        const origin = String(req.headers.origin || "").trim();
+        const appUrl = String(process.env.APP_URL || process.env.WEB_APP_URL || "").trim();
+        const base = (origin && /^https?:\/\//i.test(origin) ? origin : "") ||
+            (appUrl && /^https?:\/\//i.test(appUrl) ? appUrl : "") ||
+            "https://xboostai.netlify.app";
+        const successUrl = parsed.data.successUrl || `${base.replace(/\/+$/, "")}/dashboard/billing?checkout=success`;
+        const cancelUrl = parsed.data.cancelUrl || `${base.replace(/\/+$/, "")}/dashboard/billing?checkout=cancel`;
         const checkout = await (0, billing_service_1.createCheckoutSession)({
             userId: req.userId,
             email,
             name: user.username,
-            ...parsed.data,
+            planId: parsed.data.planId,
+            successUrl,
+            cancelUrl,
         });
         return res.json(checkout);
     }
@@ -47,6 +60,32 @@ async function createCheckout(req, res) {
         return res
             .status(400)
             .json({ error: error?.message || "Failed to create checkout session" });
+    }
+}
+async function syncCheckout(req, res) {
+    if (!req.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+    }
+    const parsed = syncCheckoutSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues });
+    }
+    try {
+        const result = await (0, billing_service_1.syncCheckoutForUser)({
+            userId: req.userId,
+            checkoutId: parsed.data.checkoutId,
+        });
+        const billing = await (0, billing_service_1.getBillingSnapshot)(req.userId);
+        return res.json({
+            success: result.handled,
+            status: result.type,
+            billing,
+        });
+    }
+    catch (error) {
+        return res
+            .status(400)
+            .json({ error: error?.message || "Failed to sync checkout status" });
     }
 }
 async function createPortal(req, res) {

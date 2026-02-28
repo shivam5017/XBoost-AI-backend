@@ -10,6 +10,7 @@ import {
   listPayments,
   unwrapDodoWebhook,
   processWebhookPayload,
+  syncCheckoutForUser,
 } from "../services/billing.service";
 
 const checkoutSchema = z.object({
@@ -20,6 +21,10 @@ const checkoutSchema = z.object({
 
 const paymentListSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+
+const syncCheckoutSchema = z.object({
+  checkoutId: z.string().min(1),
 });
 
 export async function createCheckout(req: any, res: any) {
@@ -44,11 +49,22 @@ export async function createCheckout(req: any, res: any) {
   }
 
   try {
+    const origin = String(req.headers.origin || "").trim();
+    const appUrl = String(process.env.APP_URL || process.env.WEB_APP_URL || "").trim();
+    const base =
+      (origin && /^https?:\/\//i.test(origin) ? origin : "") ||
+      (appUrl && /^https?:\/\//i.test(appUrl) ? appUrl : "") ||
+      "https://xboostai.netlify.app";
+    const successUrl = parsed.data.successUrl || `${base.replace(/\/+$/, "")}/dashboard/billing?checkout=success`;
+    const cancelUrl = parsed.data.cancelUrl || `${base.replace(/\/+$/, "")}/dashboard/billing?checkout=cancel`;
+
     const checkout = await createCheckoutSession({
       userId: req.userId,
       email,
       name: user.username,
-      ...parsed.data,
+      planId: parsed.data.planId,
+      successUrl,
+      cancelUrl,
     });
 
     return res.json(checkout);
@@ -56,6 +72,35 @@ export async function createCheckout(req: any, res: any) {
     return res
       .status(400)
       .json({ error: error?.message || "Failed to create checkout session" });
+  }
+}
+
+export async function syncCheckout(req: any, res: any) {
+  if (!req.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const parsed = syncCheckoutSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.issues });
+  }
+
+  try {
+    const result = await syncCheckoutForUser({
+      userId: req.userId,
+      checkoutId: parsed.data.checkoutId,
+    });
+
+    const billing = await getBillingSnapshot(req.userId);
+    return res.json({
+      success: result.handled,
+      status: result.type,
+      billing,
+    });
+  } catch (error: any) {
+    return res
+      .status(400)
+      .json({ error: error?.message || "Failed to sync checkout status" });
   }
 }
 

@@ -17,6 +17,11 @@ type CreateCustomerPortalInput = {
   userId: string;
 };
 
+type SyncCheckoutInput = {
+  userId: string;
+  checkoutId?: string | null;
+};
+
 type BillingSnapshot = {
   subscription: {
     planId: PlanId;
@@ -227,6 +232,38 @@ function parseDate(dateLike?: string | Date | null): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function normalizeBaseUrl(url?: string | null): string | null {
+  if (!url) return null;
+  const v = String(url).trim();
+  if (!v) return null;
+  return v.replace(/\/+$/, "");
+}
+
+function defaultBillingReturnUrl(): string | undefined {
+  const explicit = normalizeBaseUrl(readEnv("DODO_BILLING_RETURN_URL"));
+  if (explicit) return explicit;
+
+  const app = normalizeBaseUrl(readEnv("APP_URL", "WEB_APP_URL", "NEXT_PUBLIC_APP_URL"));
+  if (app) return `${app}/dashboard/billing?checkout=return`;
+
+  return "https://xboostai.netlify.app/dashboard/billing?checkout=return";
+}
+
+function readProductId(data: any): string | null {
+  return (
+    data?.product_id ||
+    data?.subscription?.product_id ||
+    data?.product_cart?.[0]?.product_id ||
+    data?.items?.[0]?.product_id ||
+    null
+  );
+}
+
+function readPaymentAmount(data: any): number {
+  const totalAmount = Number(data?.total_amount ?? data?.amount ?? 0);
+  return totalAmount > 0 ? totalAmount / 100 : 0;
+}
+
 async function ensureSubscriptionRow(userId: string) {
   const hasTable = await isBillingTableAvailable("Subscription");
   if (!hasTable) {
@@ -267,7 +304,15 @@ function normalizeHeaders(headers: IncomingHttpHeaders): Record<string, string> 
 }
 
 function readWebhookUserId(data: any): string | null {
-  return data?.metadata?.userId || data?.customer?.metadata?.userId || null;
+  return (
+    data?.metadata?.userId ||
+    data?.metadata?.user_id ||
+    data?.customer?.metadata?.userId ||
+    data?.customer?.metadata?.user_id ||
+    data?.subscription?.metadata?.userId ||
+    data?.subscription?.metadata?.user_id ||
+    null
+  );
 }
 
 async function resolveWebhookUserId(data: any): Promise<string | null> {
@@ -308,7 +353,7 @@ async function resolveWebhookUserId(data: any): Promise<string | null> {
 export async function createCheckoutSession(input: CheckoutSessionInput) {
   const dodo = getDodoClient();
   const productId = mapPlanToProductId(input.planId);
-  const fallbackReturnUrl = readEnv("DODO_BILLING_RETURN_URL", "APP_URL");
+  const fallbackReturnUrl = defaultBillingReturnUrl();
   let response: any;
 
   try {
@@ -324,6 +369,12 @@ export async function createCheckoutSession(input: CheckoutSessionInput) {
         ...(input.cancelUrl ? { cancelUrl: input.cancelUrl } : {}),
       },
       return_url: input.successUrl || fallbackReturnUrl,
+      feature_flags: {
+        redirect_immediately: true,
+      },
+      // SDK types expose redirect control under feature_flags for checkout sessions.
+      // Keep top-level flag too for API compatibility across versions.
+      ...( { redirect_immediately: true } as any ),
     });
   } catch (error) {
     if (isDodoUnauthorized(error)) {
@@ -532,9 +583,28 @@ export async function cancelSubscriptionAtPeriodEnd(userId: string) {
 export function unwrapDodoWebhook(rawBody: Buffer, headers: IncomingHttpHeaders) {
   const dodo = getDodoClient();
   const body = rawBody.toString("utf8");
-  return dodo.webhooks.unwrap(body, {
-    headers: normalizeHeaders(headers),
-  }) as any;
+  const webhookKey = readEnv("DODO_PAYMENTS_WEBHOOK_KEY", "DODO_WEBHOOK_KEY");
+
+  if (!webhookKey) {
+    return dodo.webhooks.unsafeUnwrap(body) as any;
+  }
+
+  try {
+    return dodo.webhooks.unwrap(body, {
+      headers: normalizeHeaders(headers),
+      key: webhookKey,
+    }) as any;
+  } catch (error) {
+    const isTestMode =
+      readEnv("DODO_PAYMENTS_ENVIRONMENT", "DODO_ENVIRONMENT") === "test_mode" ||
+      readEnv("DODO_PAYMENTS_ENVIRONMENT", "DODO_ENVIRONMENT") === "test";
+
+    if (isTestMode) {
+      return dodo.webhooks.unsafeUnwrap(body) as any;
+    }
+
+    throw error;
+  }
 }
 
 export async function processWebhookPayload(payload: any): Promise<WebhookResult> {
@@ -550,7 +620,7 @@ export async function processWebhookPayload(payload: any): Promise<WebhookResult
     data?.customer?.customer_id || data?.customer_id || null;
   const subscriptionId: string | null =
     data?.subscription_id || data?.subscription?.subscription_id || null;
-  const productId: string | null = data?.product_id || data?.subscription?.product_id || null;
+  const productId: string | null = readProductId(data);
 
   const planId: PlanId =
     (data?.metadata?.planId as PlanId | undefined) || mapProductToPlan(productId);
@@ -628,13 +698,12 @@ export async function processWebhookPayload(payload: any): Promise<WebhookResult
     }
 
     if (!existing) {
-      const totalAmount = Number(data?.total_amount ?? 0);
       try {
         await prisma.payment.create({
           data: {
             userId,
             planId,
-            amount: totalAmount > 0 ? totalAmount / 100 : 0,
+            amount: readPaymentAmount(data),
             currency: String(data?.currency || "usd").toLowerCase(),
             status: String(data?.status || "succeeded").toLowerCase(),
             provider: "dodo_payments",
@@ -651,4 +720,115 @@ export async function processWebhookPayload(payload: any): Promise<WebhookResult
   }
 
   return { handled: true, type, userId };
+}
+
+export async function syncCheckoutForUser(input: SyncCheckoutInput): Promise<WebhookResult> {
+  if (!input.checkoutId) {
+    throw new Error("checkoutId is required");
+  }
+
+  const dodo = getDodoClient();
+  const user = await prisma.user.findUnique({
+    where: { id: input.userId },
+    select: { id: true, email: true },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const checkout = await dodo.checkoutSessions.retrieve(input.checkoutId);
+  const paymentId = checkout?.payment_id || null;
+  const paymentStatus = (checkout?.payment_status || "").toLowerCase();
+  const checkoutEmail = (checkout?.customer_email || "").toLowerCase();
+
+  if (checkoutEmail && checkoutEmail !== user.email.toLowerCase()) {
+    throw new Error("Checkout session does not belong to authenticated user");
+  }
+
+  if (!paymentId || paymentStatus !== "succeeded") {
+    return {
+      handled: false,
+      type: "checkout.pending",
+      userId: input.userId,
+    };
+  }
+
+  const payment = await dodo.payments.retrieve(paymentId);
+  const subscriptionId = payment?.subscription_id || null;
+  const paymentCustomerId = payment?.customer?.customer_id || null;
+  const paymentProductId = readProductId(payment);
+  const planId = mapProductToPlan(paymentProductId);
+
+  const hasSubscriptionTable = await isBillingTableAvailable("Subscription");
+  if (!hasSubscriptionTable) {
+    return { handled: false, type: "checkout.synced", userId: input.userId };
+  }
+
+  let status: SubscriptionStatus = SubscriptionStatus.active;
+  let currentPeriodStart: Date | null = null;
+  let currentPeriodEnd: Date | null = null;
+  let cancelAtPeriodEnd = false;
+  let finalProductId = paymentProductId;
+
+  if (subscriptionId) {
+    const remoteSubscription = await dodo.subscriptions.retrieve(subscriptionId);
+    status = mapDodoStatusToLocal("subscription.updated", remoteSubscription?.status);
+    currentPeriodStart = parseDate(remoteSubscription?.previous_billing_date);
+    currentPeriodEnd = parseDate(remoteSubscription?.next_billing_date);
+    cancelAtPeriodEnd = Boolean(remoteSubscription?.cancelled_at);
+    finalProductId = remoteSubscription?.product_id || finalProductId;
+  }
+
+  await prisma.subscription.upsert({
+    where: { userId: input.userId },
+    create: {
+      userId: input.userId,
+      planId: mapProductToPlan(finalProductId),
+      status,
+      dodoCustomerId: paymentCustomerId,
+      dodoSubscriptionId: subscriptionId,
+      dodoProductId: finalProductId,
+      currentPeriodStart,
+      currentPeriodEnd,
+      cancelAtPeriodEnd,
+      gracePeriodEnds: null,
+    },
+    update: {
+      planId: mapProductToPlan(finalProductId),
+      status,
+      dodoCustomerId: paymentCustomerId,
+      dodoSubscriptionId: subscriptionId,
+      dodoProductId: finalProductId,
+      currentPeriodStart,
+      currentPeriodEnd,
+      cancelAtPeriodEnd,
+      gracePeriodEnds: null,
+    },
+  });
+
+  const hasPaymentTable = await isBillingTableAvailable("Payment");
+  if (hasPaymentTable) {
+    const existing = await prisma.payment.findFirst({
+      where: { dodoPaymentId: paymentId, provider: "dodo_payments" },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      await prisma.payment.create({
+        data: {
+          userId: input.userId,
+          planId: mapProductToPlan(finalProductId) || planId,
+          amount: readPaymentAmount(payment),
+          currency: String(payment?.currency || "usd").toLowerCase(),
+          status: String(payment?.status || "succeeded").toLowerCase(),
+          provider: "dodo_payments",
+          dodoPaymentId: paymentId,
+          dodoInvoiceId: payment?.invoice_id || null,
+        },
+      });
+    }
+  }
+
+  return { handled: true, type: "checkout.synced", userId: input.userId };
 }

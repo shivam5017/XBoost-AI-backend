@@ -10,6 +10,7 @@ router.get("/plans", billing_controller_1.getPlanCatalog);
 router.get("/subscription", billing_controller_1.getSubscription);
 router.get("/payments", billing_controller_1.getPaymentHistory);
 router.post("/checkout", billing_controller_1.createCheckout);
+router.post("/sync-checkout", billing_controller_1.syncCheckout);
 router.post("/portal", billing_controller_1.createPortal);
 router.post("/cancel", billing_controller_1.cancelSubscription);
 exports.default = router;
