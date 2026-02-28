@@ -43,12 +43,17 @@ const db_1 = require("../lib/db");
 const AIService = __importStar(require("../services/ai.service"));
 const usage_service_1 = require("../services/usage.service");
 const timezone_1 = require("../utils/timezone");
+const apikey_service_1 = require("../services/apikey.service");
 async function getUserApiKey(userId) {
     const user = await db_1.prisma.user.findUnique({
         where: { id: userId },
         select: { openaiKey: true },
     });
-    return user?.openaiKey ?? null;
+    if (!user?.openaiKey)
+        return null;
+    return ((0, apikey_service_1.getProviderApiKey)(user.openaiKey, "openai") ||
+        (0, apikey_service_1.getProviderApiKey)(user.openaiKey, "chatgpt") ||
+        null);
 }
 async function trackUsage(userId, endpoint, tokens) {
     await db_1.prisma.aIUsage.create({ data: { userId, endpoint, tokens } });

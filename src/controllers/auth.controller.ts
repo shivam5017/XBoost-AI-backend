@@ -4,6 +4,12 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { prisma } from "../lib/db";
 import { AuthRequest } from "../middleware/auth";
+import {
+  ALLOWED_AI_PROVIDERS,
+  listStoredProviders,
+  removeProviderApiKey,
+  upsertProviderApiKey,
+} from "../services/apikey.service";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -14,6 +20,18 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string(),
+});
+
+const saveApiKeySchema = z.object({
+  provider: z.enum(ALLOWED_AI_PROVIDERS).optional(),
+  apiKey: z.string().optional(),
+  openaiKey: z.string().optional(),
+}).refine((data) => Boolean(data.apiKey || data.openaiKey), {
+  message: "apiKey is required",
+});
+
+const removeApiKeySchema = z.object({
+  provider: z.enum(ALLOWED_AI_PROVIDERS).optional(),
 });
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -90,7 +108,7 @@ export async function login(req: Request, res: Response): Promise<void> {
       email: user.email,
       username: user.username,
       dailyGoal: user.dailyGoal,
-      hasApiKey: !!user.openaiKey,
+      hasApiKey: listStoredProviders(user.openaiKey).length > 0,
     },
   });
 }
@@ -116,11 +134,16 @@ export async function getProfile(
   }
 
   res.json({
-    ...user,
-    hasApiKey: !!user.openaiKey,
-    openaiKey: user.openaiKey
-      ? "••••••••••••••••" + user.openaiKey.slice(-4)
-      : null,
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    dailyGoal: user.dailyGoal,
+    createdAt: user.createdAt,
+    hasApiKey: listStoredProviders(user.openaiKey).length > 0,
+    apiKeyProviders: listStoredProviders(user.openaiKey),
+    openaiKey:
+      listStoredProviders(user.openaiKey).find((p) => p.provider === "openai")
+        ?.masked || null,
   });
 }
 
@@ -146,25 +169,40 @@ export async function saveApiKey(
   req: AuthRequest,
   res: Response,
 ): Promise<void> {
-  const { openaiKey } = req.body;
-
-  if (!openaiKey || typeof openaiKey !== "string") {
-    res.status(400).json({ error: "openaiKey is required" });
+  const parsed = saveApiKeySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues });
     return;
   }
 
-  // Basic validation — OpenAI keys start with sk-
-  if (!openaiKey.startsWith("sk-")) {
-    res.status(400).json({ error: "Invalid OpenAI API key format" });
-    return;
-  }
-
-  await prisma.user.update({
+  const provider = parsed.data.provider || "openai";
+  const apiKey = parsed.data.apiKey || parsed.data.openaiKey!;
+  const current = await prisma.user.findUnique({
     where: { id: req.userId },
-    data: { openaiKey },
+    select: { openaiKey: true },
   });
 
-  res.json({ success: true, hasApiKey: true });
+  try {
+    const encrypted = upsertProviderApiKey(current?.openaiKey, provider, apiKey);
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { openaiKey: encrypted },
+    });
+  } catch (error: any) {
+    res.status(400).json({ error: error?.message || "Invalid API key" });
+    return;
+  }
+
+  const updated = await prisma.user.findUnique({
+    where: { id: req.userId },
+    select: { openaiKey: true },
+  });
+
+  res.json({
+    success: true,
+    hasApiKey: listStoredProviders(updated?.openaiKey).length > 0,
+    providers: listStoredProviders(updated?.openaiKey),
+  });
 }
 
 // ── NEW: Remove user's OpenAI API key ──
@@ -172,11 +210,31 @@ export async function removeApiKey(
   req: AuthRequest,
   res: Response,
 ): Promise<void> {
+  const parsed = removeApiKeySchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues });
+    return;
+  }
+
+  const current = await prisma.user.findUnique({
+    where: { id: req.userId },
+    select: { openaiKey: true },
+  });
+
+  const updatedValue = removeProviderApiKey(
+    current?.openaiKey,
+    parsed.data.provider,
+  );
+
   await prisma.user.update({
     where: { id: req.userId },
-    data: { openaiKey: null },
+    data: { openaiKey: updatedValue },
   });
-  res.json({ success: true, hasApiKey: false });
+
+  res.json({
+    success: true,
+    hasApiKey: Boolean(updatedValue),
+  });
 }
 
 export async function logout(req: Request, res: Response): Promise<void> {

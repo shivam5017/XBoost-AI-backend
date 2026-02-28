@@ -4,13 +4,19 @@ import { prisma } from '../lib/db';
 import * as AIService from '../services/ai.service';
 import { consumeDailyReplyQuota, consumeDailyTweetQuota } from '../services/usage.service';
 import { readTimezoneFromRequest, startOfDayUtcForTimezone } from '../utils/timezone';
+import { getProviderApiKey } from "../services/apikey.service";
 
 async function getUserApiKey(userId: string): Promise<string | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { openaiKey: true },
   });
-  return user?.openaiKey ?? null;
+  if (!user?.openaiKey) return null;
+  return (
+    getProviderApiKey(user.openaiKey, "openai") ||
+    getProviderApiKey(user.openaiKey, "chatgpt") ||
+    null
+  );
 }
 
 async function trackUsage(userId: string, endpoint: string, tokens: number): Promise<void> {
