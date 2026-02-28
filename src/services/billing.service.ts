@@ -3,6 +3,7 @@ import DodoPayments from "dodopayments";
 import { prisma } from "../lib/db";
 import { PlanId, SubscriptionStatus } from "../lib/generated/prisma/enums";
 import { getDailyUsageSnapshotForTimezone } from "./usage.service";
+import { getModuleConfigMap } from "./catalog.service";
 
 type CheckoutSessionInput = {
   userId: string;
@@ -638,7 +639,7 @@ export async function getBillingSnapshot(
       ),
     },
     plan: PLAN_CATALOG[subscription.planId],
-    features: getFeatureCatalogForPlan(effectivePlan),
+    features: await getFeatureCatalogForPlan(effectivePlan),
     usage,
   };
 }
@@ -682,11 +683,25 @@ function hasPlanFeature(planId: PlanId, featureId: FeatureId): boolean {
   return Boolean((PLAN_CATALOG[planId].features as Record<string, boolean>)[featureId]);
 }
 
-export function getFeatureCatalogForPlan(planId: PlanId): FeatureCatalogItem[] {
-  return FEATURE_CATALOG.map((feature) => ({
-    ...feature,
-    enabled: hasPlanFeature(planId, feature.id),
-  }));
+export async function getFeatureCatalogForPlan(planId: PlanId): Promise<FeatureCatalogItem[]> {
+  const overrides = await getModuleConfigMap();
+  return FEATURE_CATALOG
+    .map((feature) => {
+      const override = overrides[feature.id];
+      if (override && override.isVisible === false) return null;
+
+      return {
+        id: feature.id,
+        name: override?.name || feature.name,
+        description: override?.description || feature.description,
+        availability: (override?.availability === "coming_soon" || override?.availability === "live")
+          ? override.availability
+          : feature.availability,
+        minimumPlan: override?.minimumPlan || feature.minimumPlan,
+        enabled: hasPlanFeature(planId, feature.id),
+      } as FeatureCatalogItem;
+    })
+    .filter((item): item is FeatureCatalogItem => Boolean(item));
 }
 
 export async function getFeatureCatalogForUser(userId: string): Promise<FeatureCatalogItem[]> {

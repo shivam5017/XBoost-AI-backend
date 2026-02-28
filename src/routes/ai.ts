@@ -7,6 +7,7 @@ import {
   rewriteTweet,
   markPosted,
   getTemplates,
+  getTemplatesCatalog,
   viralHookIntel,
   preLaunchOptimize,
   trendRadar,
@@ -34,6 +35,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/templates',     getTemplates);          
+router.get('/templates/catalog', getTemplatesCatalog);
 router.post('/reply',        aiLimiter, generateReply);
 router.post('/analyze',      aiLimiter, analyzeTweet);
 router.post('/create',       aiLimiter, createTweet);

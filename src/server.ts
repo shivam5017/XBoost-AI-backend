@@ -10,6 +10,7 @@ import analyticsRoutes from "./routes/analytics";
 import streakRoutes from "./routes/streak";
 import replyRoutes from "./routes/reply";
 import billingRoutes from "./routes/billing";
+import adminRoutes from "./routes/admin";
 
 dotenv.config();
 
@@ -118,6 +119,7 @@ app.use("/analytics", analyticsRoutes);
 app.use("/streak", streakRoutes);
 app.use("/reply", replyRoutes);
 app.use("/billing", billingRoutes);
+app.use("/admin", adminRoutes);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });

@@ -217,3 +217,48 @@ model Payment {
   @@index([createdAt])
   @@index([dodoPaymentId])
 }
+
+// ─── PromptTemplate ──────────────────────────────────────────────────────────
+// Admin-managed tweet/reply templates.
+model PromptTemplate {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  label       String
+  emoji       String   @default("🧩")
+  instruction String
+  structure   String?
+  example     String?
+  category    String   @default("general")
+  target      String   @default("both") // tweet | reply | both
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@index([target])
+}
+
+// ─── PromptConfig ────────────────────────────────────────────────────────────
+// Admin-managed instruction blocks used by AI generators/modules.
+model PromptConfig {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── ModuleConfig ────────────────────────────────────────────────────────────
+// Admin-managed module visibility and copy overrides.
+model ModuleConfig {
+  id           String   @id // matches FeatureId
+  name         String?
+  description  String?
+  availability String?
+  minimumPlan  PlanId?
+  isVisible    Boolean  @default(true)
+  promptHint   String?
+  inputHelp    Json?
+  examples     Json?
+  updatedAt    DateTime @updatedAt
+}

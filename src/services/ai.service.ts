@@ -1,4 +1,9 @@
 import OpenAI from 'openai';
+import {
+  getActiveTemplateMap,
+  getDefaultPromptConfigMap,
+  getPromptConfigMap,
+} from "./catalog.service";
 
 const TONE_PROMPTS: Record<string, string> = {
   smart:         'Be insightful, add a unique perspective, and provide value. Sound knowledgeable but approachable.',
@@ -8,18 +13,6 @@ const TONE_PROMPTS: Record<string, string> = {
   founder:       'Sound like a startup founder sharing hard-won lessons. Reference growth, product, execution, or failure.',
   storyteller:   'Open with a compelling hook, build tension, and land a punchy conclusion. Make it feel personal.',
   educator:      'Break down complex ideas simply. Use analogies. Teach something genuinely useful.',
-};
-
-// Templates are named prompts that add extra context to the output
-export const TEMPLATES: Record<string, { label: string; emoji: string; instruction: string }> = {
-  thread_hook:    { label: 'Thread Hook',    emoji: '🧵', instruction: 'Format as a compelling thread opener that makes people want to click "show more".' },
-  hot_take:       { label: 'Hot Take',       emoji: '🔥', instruction: 'Frame as a bold hot take. Start with a provocative statement. Own it.' },
-  personal_story: { label: 'Personal Story', emoji: '📖', instruction: 'Write in first person as a personal experience or lesson. Use "I" statements. Feel authentic.' },
-  question:       { label: 'Engage Question',emoji: '❓', instruction: 'End with a thought-provoking question that drives replies. Make people want to answer.' },
-  listicle:       { label: 'Quick List',     emoji: '📋', instruction: 'Format as a tight numbered list (max 4 items). Each point should be punchy and standalone.' },
-  quote_style:    { label: 'Quote Style',    emoji: '💬', instruction: 'Write in a quotable, aphorism-style. Short, memorable, screenshot-worthy.' },
-  data_insight:   { label: 'Data Insight',   emoji: '📊', instruction: 'Present as a surprising stat or data-backed insight. Use specific numbers even if illustrative.' },
-  cta:            { label: 'Call to Action',  emoji: '🎯', instruction: 'End with a clear, specific call to action that drives engagement (follow, comment, share, try).' },
 };
 
 // ── Helper ────────────────────────────────────────────────────────────────────
@@ -53,6 +46,26 @@ Quality bar:
 - Prioritize novelty and angle diversity. Avoid repeating common phrasing.
 `;
 
+async function resolveGenerationConfig() {
+  const defaults = getDefaultPromptConfigMap();
+  try {
+    return await getPromptConfigMap();
+  } catch {
+    return defaults;
+  }
+}
+
+async function resolveTemplateInstruction(
+  templateId: string | undefined,
+  target: "tweet" | "reply",
+): Promise<string> {
+  if (!templateId) return "";
+  const map = await getActiveTemplateMap(target);
+  const match = map[templateId];
+  if (!match) return "";
+  return `\nTemplate: ${match.instruction}`;
+}
+
 function buildGenerationPrompt(
   objective: string,
   toneInstruction: string,
@@ -85,12 +98,14 @@ export async function generateReply(
   const openai = getClient(userApiKey);
   const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
   const lengthInstruction = buildLengthInstruction(wordCount);
-  const templateInstruction = templateId && TEMPLATES[templateId]
-    ? `\nTemplate: ${TEMPLATES[templateId].instruction}`
-    : '';
+  const templateInstruction = await resolveTemplateInstruction(templateId, "reply");
   const customPrompt = userPrompt?.trim()
     ? `\nUser preference: ${userPrompt.trim()}`
     : "";
+  const config = await resolveGenerationConfig();
+  const guardrails = config.generation_guardrails || SYSTEM_GUARDRAILS;
+  const objective = config.reply_objective ||
+    `You are an elite X growth strategist. Generate ONE reply that directly addresses the source tweet and adds a fresh angle, useful insight, or respectful disagreement.`;
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -102,7 +117,7 @@ export async function generateReply(
       {
         role: 'system',
         content: buildGenerationPrompt(
-          `You are an elite X growth strategist. Generate ONE reply that directly addresses the source tweet and adds a fresh angle, useful insight, or respectful disagreement.
+          `${objective}
 
 Context rules:
 - Must reference the specific tweet context, not a generic reply.
@@ -112,7 +127,7 @@ Context rules:
           lengthInstruction,
           templateInstruction,
           customPrompt,
-        ),
+        ).replace(SYSTEM_GUARDRAILS, guardrails),
       },
       {
         role: 'user',
@@ -172,12 +187,13 @@ export async function createTweet(
   const openai = getClient(userApiKey);
   const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
   const lengthInstruction = buildLengthInstruction(wordCount);
-  const templateInstruction = templateId && TEMPLATES[templateId]
-    ? `\nTemplate: ${TEMPLATES[templateId].instruction}`
-    : '';
+  const templateInstruction = await resolveTemplateInstruction(templateId, "tweet");
   const customPrompt = userPrompt?.trim()
     ? `\nUser preference: ${userPrompt.trim()}`
     : "";
+  const config = await resolveGenerationConfig();
+  const guardrails = config.generation_guardrails || SYSTEM_GUARDRAILS;
+  const objective = config.create_objective || "Create one high-performing original tweet.";
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -189,7 +205,7 @@ export async function createTweet(
       {
         role: 'system',
         content: buildGenerationPrompt(
-          `Create one high-performing original tweet.
+          `${objective}
 
 Content rules:
 - Start with a hook that earns attention in first 8-12 words.
@@ -200,7 +216,7 @@ Content rules:
           lengthInstruction,
           templateInstruction,
           customPrompt,
-        ),
+        ).replace(SYSTEM_GUARDRAILS, guardrails),
       },
       { role: 'user', content: `Topic: ${topic}` },
     ],
@@ -222,12 +238,14 @@ export async function rewriteTweet(
   const openai = getClient(userApiKey);
   const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
   const lengthInstruction = buildLengthInstruction(wordCount);
-  const templateInstruction = templateId && TEMPLATES[templateId]
-    ? `\nTemplate: ${TEMPLATES[templateId].instruction}`
-    : '';
+  const templateInstruction = await resolveTemplateInstruction(templateId, "tweet");
   const customPrompt = userPrompt?.trim()
     ? `\nUser preference: ${userPrompt.trim()}`
     : "";
+  const config = await resolveGenerationConfig();
+  const guardrails = config.generation_guardrails || SYSTEM_GUARDRAILS;
+  const objective = config.rewrite_objective ||
+    "Rewrite the draft to be materially stronger while preserving original meaning.";
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -239,7 +257,7 @@ export async function rewriteTweet(
       {
         role: 'system',
         content: buildGenerationPrompt(
-          `Rewrite the draft to be materially stronger while preserving original meaning.
+          `${objective}
 
 Rewrite rules:
 - Keep the same intent, sharpen the framing.
@@ -250,7 +268,7 @@ Rewrite rules:
           lengthInstruction,
           templateInstruction,
           customPrompt,
-        ),
+        ).replace(SYSTEM_GUARDRAILS, guardrails),
       },
       { role: 'user', content: `Draft: "${draftText}"` },
     ],
@@ -258,6 +276,10 @@ Rewrite rules:
 
   const rewrite = completion.choices[0]?.message?.content?.trim() || '';
   return { rewrite, tokens: completion.usage?.total_tokens || 0 };
+}
+
+export async function getActiveTemplates(target: "tweet" | "reply" | "all" = "all") {
+  return getActiveTemplateMap(target);
 }
 
 function clampScore(value: number): number {

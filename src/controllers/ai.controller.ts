@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../lib/db';
 import * as AIService from '../services/ai.service';
+import { listTemplates } from "../services/catalog.service";
 import { consumeDailyReplyQuota, consumeDailyTweetQuota } from '../services/usage.service';
 import { readTimezoneFromRequest, startOfDayUtcForTimezone } from '../utils/timezone';
 import { getProviderApiKey } from "../services/apikey.service";
@@ -265,7 +266,13 @@ export async function markPosted(req: AuthRequest, res: Response): Promise<void>
 
 // ── GET /ai/templates ─────────────────────────────────────────────────────────
 export async function getTemplates(_req: AuthRequest, res: Response): Promise<void> {
-  res.json(AIService.TEMPLATES);
+  const templates = await AIService.getActiveTemplates("all");
+  res.json(templates);
+}
+
+export async function getTemplatesCatalog(_req: AuthRequest, res: Response): Promise<void> {
+  const templates = await listTemplates();
+  res.json(templates);
 }
 
 export async function viralHookIntel(req: AuthRequest, res: Response): Promise<void> {
