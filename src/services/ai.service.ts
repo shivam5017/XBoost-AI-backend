@@ -41,6 +41,36 @@ function buildLengthInstruction(wordCount: number): string {
   return `Write around ${wordCount} words. You have space — use it to add depth and value.`;
 }
 
+const SYSTEM_GUARDRAILS = `
+Quality bar:
+- Write like a real person on X, not a marketing template.
+- Prefer concrete language over generic motivation.
+- Use short sentence rhythm and clean line breaks.
+- Avoid clickbait cliches, filler, and emoji spam.
+- Avoid these openers unless context truly requires them:
+  "Great point", "I agree", "This!", "Absolutely", "Couldn't agree more".
+- Keep it safe for work and policy-compliant.
+`;
+
+function buildGenerationPrompt(
+  objective: string,
+  toneInstruction: string,
+  lengthInstruction: string,
+  templateInstruction: string,
+): string {
+  return `${objective}
+
+Tone: ${toneInstruction}
+Length: ${lengthInstruction}${templateInstruction}
+
+${SYSTEM_GUARDRAILS}
+
+Output constraints:
+- Return only final text.
+- No markdown fences.
+- No meta commentary.`;
+}
+
 // ── generateReply — responds to a specific tweet ──────────────────────────────
 export async function generateReply(
   tweetText: string,
@@ -62,20 +92,17 @@ export async function generateReply(
     messages: [
       {
         role: 'system',
-        content: `You are a Twitter growth expert. Generate ONE reply that directly responds to the given tweet.
+        content: buildGenerationPrompt(
+          `You are an elite X growth strategist. Generate ONE reply that directly addresses the source tweet and adds a fresh angle, useful insight, or respectful disagreement.
 
-Tone: ${toneInstruction}
-Length: ${lengthInstruction}${templateInstruction}
-
-Rules:
-- MUST directly reference or respond to the content of the tweet
-- Sound human, never robotic or spammy
-- Add genuine value or spark conversation
-- NO generic openers like "Great point!" or "I agree!"
-- Under 280 characters unless it's a thread hook
-- NO hashtags unless absolutely necessary
-
-Return ONLY the reply text. Nothing else.`,
+Context rules:
+- Must reference the specific tweet context, not a generic reply.
+- Under 280 characters unless template is thread hook.
+- No hashtags unless essential.`,
+          toneInstruction,
+          lengthInstruction,
+          templateInstruction,
+        ),
       },
       {
         role: 'user',
@@ -144,18 +171,18 @@ export async function createTweet(
     messages: [
       {
         role: 'system',
-        content: `Create a high-performing original tweet.
+        content: buildGenerationPrompt(
+          `Create one high-performing original tweet.
 
-Tone: ${toneInstruction}
-Length: ${lengthInstruction}${templateInstruction}
-
-Rules:
-- Strong hook in the first line
-- No hashtag spam (max 1 if relevant)
-- Human voice — not AI-sounding
-- Under 280 characters unless it's a thread hook
-
-Return ONLY the tweet text. Nothing else.`,
+Content rules:
+- Start with a hook that earns attention in first 8-12 words.
+- Deliver one core insight, opinion, or practical takeaway.
+- No hashtag spam (max 1 if relevant).
+- Under 280 characters unless template is thread hook.`,
+          toneInstruction,
+          lengthInstruction,
+          templateInstruction,
+        ),
       },
       { role: 'user', content: `Topic: ${topic}` },
     ],
@@ -186,18 +213,18 @@ export async function rewriteTweet(
     messages: [
       {
         role: 'system',
-        content: `Rewrite this tweet draft to be significantly more engaging while keeping the original intent.
+        content: buildGenerationPrompt(
+          `Rewrite the draft to be materially stronger while preserving original meaning.
 
-Tone: ${toneInstruction}
-Length: ${lengthInstruction}${templateInstruction}
-
-Rules:
-- Keep the original message/intent
-- Make the hook stronger
-- Cut filler words ruthlessly
-- Under 280 characters unless it's a thread hook
-
-Return ONLY the rewritten tweet. Nothing else.`,
+Rewrite rules:
+- Keep the same intent, sharpen the framing.
+- Improve hook clarity and pacing.
+- Remove filler and weak qualifiers.
+- Under 280 characters unless template is thread hook.`,
+          toneInstruction,
+          lengthInstruction,
+          templateInstruction,
+        ),
       },
       { role: 'user', content: `Draft: "${draftText}"` },
     ],
