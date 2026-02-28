@@ -42,6 +42,10 @@ function isOriginAllowed(origin) {
         return true;
     if (/^https:\/\/([a-z0-9-]+\.)*netlify\.app$/i.test(origin))
         return true;
+    if (/^https:\/\/(www\.)?x\.com$/i.test(origin))
+        return true;
+    if (/^https:\/\/(www\.)?twitter\.com$/i.test(origin))
+        return true;
     return false;
 }
 const corsOptions = {
