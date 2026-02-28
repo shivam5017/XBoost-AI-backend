@@ -15,24 +15,43 @@ const PORT = process.env.PORT || 4500;
 
 app.set("trust proxy", 1);
 
-const allowedOrigins = [
+const baseAllowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
   "https://xboostai.netlify.app",
-  "https://xboost-ai-backend.onrender.com",
 ];
+
+const envAllowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((v) => v.trim())
+  .filter(Boolean);
+
+const allowedOrigins = new Set([...baseAllowedOrigins, ...envAllowedOrigins]);
+
+function isOriginAllowed(origin: string): boolean {
+  if (allowedOrigins.has(origin)) return true;
+  if (origin.startsWith("chrome-extension://")) return true;
+
+  // Allow Netlify preview URLs and www variants in production.
+  if (/^https:\/\/([a-z0-9-]+\.)*netlify\.app$/i.test(origin)) return true;
+
+  return false;
+}
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
-    const isAllowed =
-      allowedOrigins.includes(origin) ||
-      origin.startsWith("chrome-extension://");
+    if (isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
 
-    callback(null, isAllowed);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));

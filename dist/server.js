@@ -16,21 +16,39 @@ const billing_1 = __importDefault(require("./routes/billing"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4500;
 app.set("trust proxy", 1);
-const allowedOrigins = [
+const baseAllowedOrigins = [
     "http://localhost:5173",
     "http://localhost:3000",
+    "https://xboostai.netlify.app",
 ];
+const envAllowedOrigins = (process.env.CORS_ORIGINS || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+const allowedOrigins = new Set([...baseAllowedOrigins, ...envAllowedOrigins]);
+function isOriginAllowed(origin) {
+    if (allowedOrigins.has(origin))
+        return true;
+    if (origin.startsWith("chrome-extension://"))
+        return true;
+    // Allow Netlify preview URLs and www variants in production.
+    if (/^https:\/\/([a-z0-9-]+\.)*netlify\.app$/i.test(origin))
+        return true;
+    return false;
+}
 const corsOptions = {
     origin: (origin, callback) => {
         if (!origin)
             return callback(null, true);
-        if (allowedOrigins.includes(origin) ||
-            origin.startsWith("chrome-extension://")) {
+        if (isOriginAllowed(origin)) {
             return callback(null, true);
         }
-        return callback(new Error("Not allowed by CORS"));
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 204,
 };
 app.use((0, cors_1.default)(corsOptions));
 app.options(/.*/, (0, cors_1.default)(corsOptions));
