@@ -5,6 +5,7 @@ const auth_1 = require("../middleware/auth");
 const billing_controller_1 = require("../controllers/billing.controller");
 const router = (0, express_1.Router)();
 router.post("/webhook", billing_controller_1.handleWebhook);
+router.get("/public/plans", billing_controller_1.getPublicPlanCatalog);
 router.use(auth_1.authenticate);
 router.get("/plans", billing_controller_1.getPlanCatalog);
 router.get("/roadmap", billing_controller_1.getRoadmap);

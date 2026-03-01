@@ -129,6 +129,10 @@ export async function getPlanCatalog(_req: any, res: any) {
   return res.json(await getPlans());
 }
 
+export async function getPublicPlanCatalog(_req: any, res: any) {
+  return res.json(await getPlans());
+}
+
 export async function getRoadmap(_req: any, res: any) {
   return res.json(await listRoadmapItems(false));
 }

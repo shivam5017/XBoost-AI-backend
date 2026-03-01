@@ -7,6 +7,7 @@ import {
   getFeatureCatalog,
   getPaymentHistory,
   getPlanCatalog,
+  getPublicPlanCatalog,
   getRoadmap,
   getSubscription,
   handleWebhook,
@@ -16,6 +17,7 @@ import {
 const router = Router();
 
 router.post("/webhook", handleWebhook);
+router.get("/public/plans", getPublicPlanCatalog);
 
 router.use(authenticate);
 router.get("/plans", getPlanCatalog);
