@@ -292,6 +292,11 @@ function isDodoUnauthorized(error) {
     const status = Number(error?.status ?? error?.statusCode ?? 0);
     return status === 401 || message.includes("401");
 }
+function isDodoLivePaymentsNotEnabled(error) {
+    const message = String(error?.message || "").toLowerCase();
+    return (message.includes("live payments not enabled yet") ||
+        message.includes("live payments are not enabled yet"));
+}
 function mapDodoStatusToLocal(type, status) {
     const eventType = type.toLowerCase();
     const normalized = (status || "").toLowerCase();
@@ -579,6 +584,9 @@ async function createCheckoutSession(input) {
     catch (error) {
         if (isDodoUnauthorized(error)) {
             throw new Error("Dodo auth failed. Verify DODO_PAYMENTS_API_KEY and DODO_PAYMENTS_ENVIRONMENT (test_mode/live_mode) match your product IDs.");
+        }
+        if (isDodoLivePaymentsNotEnabled(error)) {
+            throw new Error("Dodo live payments are not enabled for this merchant yet. Use test mode (DODO_PAYMENTS_ENVIRONMENT=test_mode with test product IDs) or enable live payments in Dodo dashboard.");
         }
         throw error;
     }
