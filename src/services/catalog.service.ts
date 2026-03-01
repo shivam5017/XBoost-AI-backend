@@ -47,8 +47,8 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     slug: "double_definition",
     label: "Double Definition",
     emoji: "🧠",
-    instruction: "Define two related ideas with sharp contrast in short lines.",
-    structure: "[A] is [Definition]\\n\\n[B] is [Definition]",
+    instruction: "Use two crisp definitions with contrast. Keep it punchy and screenshot-friendly.",
+    structure: "Hook: Most creators confuse consistency with clarity.\\n\\nConsistency is repeating actions.\\nClarity is repeating the right message.",
     example: "Leverage is borrowed trust.\\n\\nAuthority is earned trust.",
     category: "framework",
     target: "both",
@@ -59,7 +59,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "Triad Structure",
     emoji: "🔺",
     instruction: "Use a 3-part rhythm to make the idea memorable.",
-    structure: "[A] to/like [Sentence]\\n\\n[B] to/like [Sentence]\\n\\n[C] to/like [Sentence]",
+    structure: "Build in public to earn proof.\\nWrite in public to earn trust.\\nShip in public to earn momentum.",
     example: "Build in public to learn faster.\\nShip faster to learn cheaper.\\nLearn cheaper to scale cleaner.",
     category: "framework",
     target: "tweet",
@@ -70,7 +70,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "Extremes",
     emoji: "⚖️",
     instruction: "Use a clear before/after contrast with concrete benefit.",
-    structure: "The [extreme]:\\n[person or topic]\\n[your investment]\\n[the specific benefit]",
+    structure: "The extreme:\\nMost people optimize for tools.\\nI optimized for systems.\\nNow output ships daily.",
     example: "The extreme:\\nMost devs optimize for tools.\\nI optimized for systems.\\nNow content ships daily without burnout.",
     category: "framework",
     target: "tweet",
@@ -81,7 +81,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "The Callout",
     emoji: "📢",
     instruction: "Challenge identity assumptions with concise punch.",
-    structure: "\"I'm [A]\"\\n\\nNo.\\n\\nYou're [B]",
+    structure: "\"I need more motivation.\"\\n\\nNo.\\n\\nYou need a smaller daily system.",
     example: "\"I'm too busy to post.\"\\n\\nNo.\\n\\nYou're under-prioritizing distribution.",
     category: "framework",
     target: "both",
@@ -92,7 +92,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "List + Question",
     emoji: "🧾",
     instruction: "Start with a bold hook, add 5-8 tactical bullets, close with a discussion question.",
-    structure: "[Hook]\\n\\n- [Point 1]\\n- [Point 2]\\n- [Point 3]\\n- [Point 4]\\n- [Point 5]\\n\\n[Question]",
+    structure: "Hook: Most solo devs don't need more features.\\n\\n- Improve onboarding copy\\n- Add one retention loop\\n- Cut setup friction\\n- Track activation weekly\\n- Fix one bottleneck at a time\\n\\nQuestion: Which one are you fixing first?",
     example: "Most solo devs don't need a bigger roadmap.\\n\\n- Kill tasks with no distribution impact\\n- Ship one loop weekly\\n- Track conversion, not likes\\n- Reduce context switching\\n- Build assets, not one-off posts\\n\\nWhich one are you ignoring right now?",
     category: "list",
     target: "tweet",
@@ -103,7 +103,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "Repetition List",
     emoji: "🔁",
     instruction: "Repeat a verb for rhythm and make one final break-line lesson.",
-    structure: "Study [A]\\nStudy [B]\\nStudy [C]\\nStudy [D]\\nBlow [E]\\n[Lesson]",
+    structure: "Study hooks.\\nStudy pacing.\\nStudy proof.\\nStudy CTA.\\nBlow up your weak drafts.\\nLesson: clarity compounds.",
     example: "Study hooks.\\nStudy pacing.\\nStudy proof.\\nStudy CTA.\\nBlow up your old drafts.\\nThen publish like an operator.",
     category: "list",
     target: "tweet",
@@ -114,7 +114,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "Hook + List + Lesson",
     emoji: "🎯",
     instruction: "One hook, one compact list, one takeaway sentence.",
-    structure: "[Hook]\\n\\n[List]\\n\\n[Lesson]",
+    structure: "Hook: Most content dies in line one.\\n\\n1) Weak hook\\n2) No proof\\n3) No POV\\n4) No CTA\\n\\nLesson: write for decisions, not impressions.",
     example: "Most content fails before sentence 2.\\n\\n1) Weak first line\\n2) Generic claim\\n3) No proof\\n4) No CTA\\n\\nHook is distribution.",
     category: "framework",
     target: "both",
@@ -125,7 +125,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "Split Sentences",
     emoji: "✂️",
     instruction: "Use two short lines where sentence two starts with words from sentence one.",
-    structure: "[Part 1]\\n\\n[Part 2 starts with phrase from Part 1]",
+    structure: "You do not need another growth hack.\\nGrowth hacks won't save unclear positioning.",
     example: "You don't need more tools.\\nMore tools won't fix weak positioning.",
     category: "framework",
     target: "both",
@@ -136,7 +136,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "Contrast Tweet",
     emoji: "🆚",
     instruction: "Frame as don't/need or stop/start contrast.",
-    structure: "You don't need [A]\\nYou need [B]\\n\\nStop [A]\\nStart [B]",
+    structure: "You don't need more prompts.\\nYou need stronger positioning.\\n\\nStop posting random tips.\\nStart posting repeatable systems.",
     example: "You don't need more prompts.\\nYou need clearer positioning.\\n\\nStop posting tips.\\nStart shipping opinions.",
     category: "contrast",
     target: "both",
@@ -147,7 +147,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "Milestone Tweet",
     emoji: "🏁",
     instruction: "State a milestone and the repeatable daily actions behind it.",
-    structure: "I hit ___ followers ___.\\n\\n- Daily ____\\n- Daily ____\\n- Daily ____\\n\\n[Short lesson]",
+    structure: "I hit 25k followers in 9 months.\\n\\n- Daily shipping\\n- Daily replying\\n- Daily idea capture\\n\\nLesson: simple loops beat complex plans.",
     example: "I hit 25k followers in 9 months.\\n\\n- Daily shipping\\n- Daily replying\\n- Daily idea capture\\n\\nSimple loops beat complex plans.",
     category: "proof",
     target: "tweet",
@@ -158,7 +158,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "Symmetric Comparison",
     emoji: "🪞",
     instruction: "Use two mirrored lists and close with a lesson.",
-    structure: "[Hook]\\n\\n[List 1]\\n\\n[List 2]\\n\\n[Lesson]",
+    structure: "Creators who grow: ship, test, iterate.\\nCreators who stall: plan, delay, overthink.\\nLesson: speed to feedback wins.",
     example: "Creators who grow: ship, test, iterate.\\nCreators who stall: plan, delay, overthink.\\nDifference is speed to feedback.",
     category: "comparison",
     target: "tweet",
@@ -169,7 +169,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "PAS",
     emoji: "🛠️",
     instruction: "Use problem, pain amplification, and practical solution.",
-    structure: "Problem: [A]\\nAgitate: [B]\\nSolve: [C]",
+    structure: "Problem: Inconsistent posting.\\nAgitate: Audience forgets you in 48h.\\nSolve: Build a 30-minute daily loop.",
     example: "Problem: Inconsistent posting.\\nAgitate: Your audience forgets you in 48h.\\nSolve: Build a daily 30-minute content loop.",
     category: "copywriting",
     target: "both",
@@ -180,7 +180,7 @@ const DEFAULT_TEMPLATES: PromptTemplateInput[] = [
     label: "Insight + Receipt",
     emoji: "🧾",
     instruction: "Make a claim and back it with one concrete metric or example.",
-    structure: "[Insight]\\nReceipt: [specific metric/example]\\n[CTA/question]",
+    structure: "Insight: Longer tweets are not the issue.\\nReceipt: 63% of my top posts are under 180 characters.\\nQuestion: Are you optimizing for clarity or length?",
     example: "Longer tweets are not the issue.\\nReceipt: 63% of my top posts are under 180 chars.\\nAre you optimizing for clarity or length?",
     category: "proof",
     target: "both",
@@ -327,7 +327,20 @@ export async function getActiveTemplateMap(target: TemplateTarget | "all" = "all
       DEFAULT_TEMPLATES
         .filter((t) => t.isActive !== false)
         .filter((t) => target === "all" || t.target === "both" || t.target === target)
-        .map((t) => [t.slug, { label: t.label, emoji: t.emoji || "🧩", instruction: t.instruction }]),
+        .map((t) => [
+          t.slug,
+          {
+            label: t.label,
+            emoji: t.emoji || "🧩",
+            instruction: [
+              t.instruction,
+              t.structure ? `Format style:\n${t.structure}` : "",
+              t.example ? `Reference example:\n${t.example}` : "",
+            ]
+              .filter(Boolean)
+              .join("\n\n"),
+          },
+        ]),
     );
   }
 
@@ -343,17 +356,47 @@ export async function getActiveTemplateMap(target: TemplateTarget | "all" = "all
         label: true,
         emoji: true,
         instruction: true,
+        structure: true,
+        example: true,
       },
     });
 
-    return Object.fromEntries(rows.map((row) => [row.slug, row]));
+    return Object.fromEntries(
+      rows.map((row) => [
+        row.slug,
+        {
+          label: row.label,
+          emoji: row.emoji,
+          instruction: [
+            row.instruction,
+            row.structure ? `Format style:\n${row.structure}` : "",
+            row.example ? `Reference example:\n${row.example}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n\n"),
+        },
+      ]),
+    );
   } catch (error) {
     if (isPrismaUnavailableError(error)) {
       return Object.fromEntries(
         DEFAULT_TEMPLATES
           .filter((t) => t.isActive !== false)
           .filter((t) => target === "all" || t.target === "both" || t.target === target)
-          .map((t) => [t.slug, { label: t.label, emoji: t.emoji || "🧩", instruction: t.instruction }]),
+          .map((t) => [
+            t.slug,
+            {
+              label: t.label,
+              emoji: t.emoji || "🧩",
+              instruction: [
+                t.instruction,
+                t.structure ? `Format style:\n${t.structure}` : "",
+                t.example ? `Reference example:\n${t.example}` : "",
+              ]
+                .filter(Boolean)
+                .join("\n\n"),
+            },
+          ]),
       );
     }
     throw error;
