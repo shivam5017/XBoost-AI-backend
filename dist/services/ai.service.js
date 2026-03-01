@@ -3,11 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TEMPLATES = void 0;
+exports.getToneCatalog = getToneCatalog;
 exports.generateReply = generateReply;
 exports.analyzeTweet = analyzeTweet;
 exports.createTweet = createTweet;
 exports.rewriteTweet = rewriteTweet;
+exports.getActiveTemplates = getActiveTemplates;
 exports.viralHookIntelligence = viralHookIntelligence;
 exports.preLaunchOptimizer = preLaunchOptimizer;
 exports.nicheTrendRadar = nicheTrendRadar;
@@ -22,7 +23,8 @@ exports.viralScorePredictor = viralScorePredictor;
 exports.bestTimeToPost = bestTimeToPost;
 exports.contentPerformancePrediction = contentPerformancePrediction;
 const openai_1 = __importDefault(require("openai"));
-const TONE_PROMPTS = {
+const catalog_service_1 = require("./catalog.service");
+const DEFAULT_TONE_PROMPTS = {
     smart: 'Be insightful, add a unique perspective, and provide value. Sound knowledgeable but approachable.',
     viral: 'Make it shareable and punchy. Use a strong hook. Create curiosity or spark emotion. Think retweet-worthy.',
     funny: 'Be witty and clever. Use wordplay or unexpected angles. Keep it light and entertaining.',
@@ -30,17 +32,6 @@ const TONE_PROMPTS = {
     founder: 'Sound like a startup founder sharing hard-won lessons. Reference growth, product, execution, or failure.',
     storyteller: 'Open with a compelling hook, build tension, and land a punchy conclusion. Make it feel personal.',
     educator: 'Break down complex ideas simply. Use analogies. Teach something genuinely useful.',
-};
-// Templates are named prompts that add extra context to the output
-exports.TEMPLATES = {
-    thread_hook: { label: 'Thread Hook', emoji: '🧵', instruction: 'Format as a compelling thread opener that makes people want to click "show more".' },
-    hot_take: { label: 'Hot Take', emoji: '🔥', instruction: 'Frame as a bold hot take. Start with a provocative statement. Own it.' },
-    personal_story: { label: 'Personal Story', emoji: '📖', instruction: 'Write in first person as a personal experience or lesson. Use "I" statements. Feel authentic.' },
-    question: { label: 'Engage Question', emoji: '❓', instruction: 'End with a thought-provoking question that drives replies. Make people want to answer.' },
-    listicle: { label: 'Quick List', emoji: '📋', instruction: 'Format as a tight numbered list (max 4 items). Each point should be punchy and standalone.' },
-    quote_style: { label: 'Quote Style', emoji: '💬', instruction: 'Write in a quotable, aphorism-style. Short, memorable, screenshot-worthy.' },
-    data_insight: { label: 'Data Insight', emoji: '📊', instruction: 'Present as a surprising stat or data-backed insight. Use specific numbers even if illustrative.' },
-    cta: { label: 'Call to Action', emoji: '🎯', instruction: 'End with a clear, specific call to action that drives engagement (follow, comment, share, try).' },
 };
 // ── Helper ────────────────────────────────────────────────────────────────────
 function getClient(userApiKey) {
@@ -73,6 +64,43 @@ Quality bar:
 - Keep it safe for work and policy-compliant.
 - Prioritize novelty and angle diversity. Avoid repeating common phrasing.
 `;
+async function resolveGenerationConfig() {
+    const defaults = (0, catalog_service_1.getDefaultPromptConfigMap)();
+    try {
+        return await (0, catalog_service_1.getPromptConfigMap)();
+    }
+    catch {
+        return defaults;
+    }
+}
+async function getToneCatalog() {
+    const fallback = DEFAULT_TONE_PROMPTS;
+    const config = await resolveGenerationConfig();
+    const raw = config.tone_catalog_json;
+    if (!raw)
+        return fallback;
+    try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object")
+            return fallback;
+        const safe = Object.fromEntries(Object.entries(parsed)
+            .filter(([k, v]) => typeof k === "string" && typeof v === "string" && k.trim() && v.trim())
+            .map(([k, v]) => [k.trim(), v.trim()]));
+        return Object.keys(safe).length ? safe : fallback;
+    }
+    catch {
+        return fallback;
+    }
+}
+async function resolveTemplateInstruction(templateId, target) {
+    if (!templateId)
+        return "";
+    const map = await (0, catalog_service_1.getActiveTemplateMap)(target);
+    const match = map[templateId];
+    if (!match)
+        return "";
+    return `\nTemplate: ${match.instruction}`;
+}
 function buildGenerationPrompt(objective, toneInstruction, lengthInstruction, templateInstruction, customPrompt) {
     return `${objective}
 
@@ -89,14 +117,17 @@ Output constraints:
 // ── generateReply — responds to a specific tweet ──────────────────────────────
 async function generateReply(tweetText, tone, userApiKey, wordCount = 50, templateId, userPrompt) {
     const openai = getClient(userApiKey);
-    const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
+    const toneMap = await getToneCatalog();
+    const toneInstruction = toneMap[tone] || toneMap.smart || DEFAULT_TONE_PROMPTS.smart;
     const lengthInstruction = buildLengthInstruction(wordCount);
-    const templateInstruction = templateId && exports.TEMPLATES[templateId]
-        ? `\nTemplate: ${exports.TEMPLATES[templateId].instruction}`
-        : '';
+    const templateInstruction = await resolveTemplateInstruction(templateId, "reply");
     const customPrompt = userPrompt?.trim()
         ? `\nUser preference: ${userPrompt.trim()}`
         : "";
+    const config = await resolveGenerationConfig();
+    const guardrails = config.generation_guardrails || SYSTEM_GUARDRAILS;
+    const objective = config.reply_objective ||
+        `You are an elite X growth strategist. Generate ONE reply that directly addresses the source tweet and adds a fresh angle, useful insight, or respectful disagreement.`;
     const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         max_tokens: wordCountToTokens(wordCount),
@@ -106,12 +137,12 @@ async function generateReply(tweetText, tone, userApiKey, wordCount = 50, templa
         messages: [
             {
                 role: 'system',
-                content: buildGenerationPrompt(`You are an elite X growth strategist. Generate ONE reply that directly addresses the source tweet and adds a fresh angle, useful insight, or respectful disagreement.
+                content: buildGenerationPrompt(`${objective}
 
 Context rules:
 - Must reference the specific tweet context, not a generic reply.
 - Under 280 characters unless template is thread hook.
-- No hashtags unless essential.`, toneInstruction, lengthInstruction, templateInstruction, customPrompt),
+- No hashtags unless essential.`, toneInstruction, lengthInstruction, templateInstruction, customPrompt).replace(SYSTEM_GUARDRAILS, guardrails),
             },
             {
                 role: 'user',
@@ -154,14 +185,16 @@ async function analyzeTweet(tweetText, userApiKey) {
 // ── createTweet — original tweet on a topic ───────────────────────────────────
 async function createTweet(topic, tone, userApiKey, wordCount = 50, templateId, userPrompt) {
     const openai = getClient(userApiKey);
-    const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
+    const toneMap = await getToneCatalog();
+    const toneInstruction = toneMap[tone] || toneMap.smart || DEFAULT_TONE_PROMPTS.smart;
     const lengthInstruction = buildLengthInstruction(wordCount);
-    const templateInstruction = templateId && exports.TEMPLATES[templateId]
-        ? `\nTemplate: ${exports.TEMPLATES[templateId].instruction}`
-        : '';
+    const templateInstruction = await resolveTemplateInstruction(templateId, "tweet");
     const customPrompt = userPrompt?.trim()
         ? `\nUser preference: ${userPrompt.trim()}`
         : "";
+    const config = await resolveGenerationConfig();
+    const guardrails = config.generation_guardrails || SYSTEM_GUARDRAILS;
+    const objective = config.create_objective || "Create one high-performing original tweet.";
     const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         max_tokens: wordCountToTokens(wordCount),
@@ -171,13 +204,13 @@ async function createTweet(topic, tone, userApiKey, wordCount = 50, templateId, 
         messages: [
             {
                 role: 'system',
-                content: buildGenerationPrompt(`Create one high-performing original tweet.
+                content: buildGenerationPrompt(`${objective}
 
 Content rules:
 - Start with a hook that earns attention in first 8-12 words.
 - Deliver one core insight, opinion, or practical takeaway.
 - No hashtag spam (max 1 if relevant).
-- Under 280 characters unless template is thread hook.`, toneInstruction, lengthInstruction, templateInstruction, customPrompt),
+- Under 280 characters unless template is thread hook.`, toneInstruction, lengthInstruction, templateInstruction, customPrompt).replace(SYSTEM_GUARDRAILS, guardrails),
             },
             { role: 'user', content: `Topic: ${topic}` },
         ],
@@ -188,14 +221,17 @@ Content rules:
 // ── rewriteTweet ──────────────────────────────────────────────────────────────
 async function rewriteTweet(draftText, tone, userApiKey, wordCount = 50, templateId, userPrompt) {
     const openai = getClient(userApiKey);
-    const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
+    const toneMap = await getToneCatalog();
+    const toneInstruction = toneMap[tone] || toneMap.smart || DEFAULT_TONE_PROMPTS.smart;
     const lengthInstruction = buildLengthInstruction(wordCount);
-    const templateInstruction = templateId && exports.TEMPLATES[templateId]
-        ? `\nTemplate: ${exports.TEMPLATES[templateId].instruction}`
-        : '';
+    const templateInstruction = await resolveTemplateInstruction(templateId, "tweet");
     const customPrompt = userPrompt?.trim()
         ? `\nUser preference: ${userPrompt.trim()}`
         : "";
+    const config = await resolveGenerationConfig();
+    const guardrails = config.generation_guardrails || SYSTEM_GUARDRAILS;
+    const objective = config.rewrite_objective ||
+        "Rewrite the draft to be materially stronger while preserving original meaning.";
     const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         max_tokens: wordCountToTokens(wordCount),
@@ -205,19 +241,22 @@ async function rewriteTweet(draftText, tone, userApiKey, wordCount = 50, templat
         messages: [
             {
                 role: 'system',
-                content: buildGenerationPrompt(`Rewrite the draft to be materially stronger while preserving original meaning.
+                content: buildGenerationPrompt(`${objective}
 
 Rewrite rules:
 - Keep the same intent, sharpen the framing.
 - Improve hook clarity and pacing.
 - Remove filler and weak qualifiers.
-- Under 280 characters unless template is thread hook.`, toneInstruction, lengthInstruction, templateInstruction, customPrompt),
+- Under 280 characters unless template is thread hook.`, toneInstruction, lengthInstruction, templateInstruction, customPrompt).replace(SYSTEM_GUARDRAILS, guardrails),
             },
             { role: 'user', content: `Draft: "${draftText}"` },
         ],
     });
     const rewrite = completion.choices[0]?.message?.content?.trim() || '';
     return { rewrite, tokens: completion.usage?.total_tokens || 0 };
+}
+async function getActiveTemplates(target = "all") {
+    return (0, catalog_service_1.getActiveTemplateMap)(target);
 }
 function clampScore(value) {
     return Math.max(1, Math.min(100, Math.round(value)));

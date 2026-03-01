@@ -20,6 +20,7 @@ const dodopayments_1 = __importDefault(require("dodopayments"));
 const db_1 = require("../lib/db");
 const enums_1 = require("../lib/generated/prisma/enums");
 const usage_service_1 = require("./usage.service");
+const catalog_service_1 = require("./catalog.service");
 const FEATURE_CATALOG = [
     {
         id: "viralScorePredictor",
@@ -503,7 +504,7 @@ async function getBillingSnapshot(userId, timeZone = "UTC") {
             isPaidActive: isPaidSubscription(subscription.planId, subscription.status, subscription.currentPeriodEnd, subscription.gracePeriodEnds),
         },
         plan: PLAN_CATALOG[subscription.planId],
-        features: getFeatureCatalogForPlan(effectivePlan),
+        features: await getFeatureCatalogForPlan(effectivePlan),
         usage,
     };
 }
@@ -544,11 +545,25 @@ function hasPlanFeature(planId, featureId) {
     }
     return Boolean(PLAN_CATALOG[planId].features[featureId]);
 }
-function getFeatureCatalogForPlan(planId) {
-    return FEATURE_CATALOG.map((feature) => ({
-        ...feature,
-        enabled: hasPlanFeature(planId, feature.id),
-    }));
+async function getFeatureCatalogForPlan(planId) {
+    const overrides = await (0, catalog_service_1.getModuleConfigMap)();
+    return FEATURE_CATALOG
+        .map((feature) => {
+        const override = overrides[feature.id];
+        if (override && override.isVisible === false)
+            return null;
+        return {
+            id: feature.id,
+            name: override?.name || feature.name,
+            description: override?.description || feature.description,
+            availability: (override?.availability === "coming_soon" || override?.availability === "live")
+                ? override.availability
+                : feature.availability,
+            minimumPlan: override?.minimumPlan || feature.minimumPlan,
+            enabled: hasPlanFeature(planId, feature.id),
+        };
+    })
+        .filter((item) => Boolean(item));
 }
 async function getFeatureCatalogForUser(userId) {
     const subscription = await ensureSubscriptionRow(userId);

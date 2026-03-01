@@ -82,3 +82,18 @@ export type DailyUsage = Prisma.DailyUsageModel
  * 
  */
 export type Payment = Prisma.PaymentModel
+/**
+ * Model PromptTemplate
+ * 
+ */
+export type PromptTemplate = Prisma.PromptTemplateModel
+/**
+ * Model PromptConfig
+ * 
+ */
+export type PromptConfig = Prisma.PromptConfigModel
+/**
+ * Model ModuleConfig
+ * 
+ */
+export type ModuleConfig = Prisma.ModuleConfigModel

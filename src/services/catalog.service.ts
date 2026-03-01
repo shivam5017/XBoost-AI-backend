@@ -215,6 +215,22 @@ const DEFAULT_PROMPT_CONFIG: Record<string, { value: string; description: string
     value:
       "Rewrite for stronger hook, tighter pacing, higher specificity, and clearer CTA while preserving intent.",
   },
+  tone_catalog_json: {
+    description: "JSON object for dynamic tones in compose flows. Example: {\"smart\":\"...\"}",
+    value: JSON.stringify(
+      {
+        smart: "Be insightful, add a unique perspective, and provide value. Sound knowledgeable but approachable.",
+        viral: "Make it shareable and punchy. Use a strong hook. Create curiosity or spark emotion. Think retweet-worthy.",
+        funny: "Be witty and clever. Use wordplay or unexpected angles. Keep it light and entertaining.",
+        controversial: "Take a bold, contrarian stance that invites debate. Be confident. Challenge assumptions.",
+        founder: "Sound like a startup founder sharing hard-won lessons. Reference growth, product, execution, or failure.",
+        storyteller: "Open with a compelling hook, build tension, and land a punchy conclusion. Make it feel personal.",
+        educator: "Break down complex ideas simply. Use analogies. Teach something genuinely useful.",
+      },
+      null,
+      2,
+    ),
+  },
 };
 
 const tableAvailability: Record<string, boolean | undefined> = {

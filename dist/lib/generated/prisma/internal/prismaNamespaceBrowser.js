@@ -48,7 +48,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NullsOrder = exports.QueryMode = exports.SortOrder = exports.PaymentScalarFieldEnum = exports.DailyUsageScalarFieldEnum = exports.SubscriptionScalarFieldEnum = exports.AIUsageScalarFieldEnum = exports.AnalyticsScalarFieldEnum = exports.StreakScalarFieldEnum = exports.DailyStatsScalarFieldEnum = exports.ReplyScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
+exports.JsonNullValueFilter = exports.NullsOrder = exports.QueryMode = exports.NullableJsonNullValueInput = exports.SortOrder = exports.ModuleConfigScalarFieldEnum = exports.PromptConfigScalarFieldEnum = exports.PromptTemplateScalarFieldEnum = exports.PaymentScalarFieldEnum = exports.DailyUsageScalarFieldEnum = exports.SubscriptionScalarFieldEnum = exports.AIUsageScalarFieldEnum = exports.AnalyticsScalarFieldEnum = exports.StreakScalarFieldEnum = exports.DailyStatsScalarFieldEnum = exports.ReplyScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/index-browser"));
 exports.Decimal = runtime.Decimal;
 exports.NullTypes = {
@@ -83,7 +83,10 @@ exports.ModelName = {
     AIUsage: 'AIUsage',
     Subscription: 'Subscription',
     DailyUsage: 'DailyUsage',
-    Payment: 'Payment'
+    Payment: 'Payment',
+    PromptTemplate: 'PromptTemplate',
+    PromptConfig: 'PromptConfig',
+    ModuleConfig: 'ModuleConfig'
 };
 /*
  * Enums
@@ -189,9 +192,46 @@ exports.PaymentScalarFieldEnum = {
     dodoInvoiceId: 'dodoInvoiceId',
     createdAt: 'createdAt'
 };
+exports.PromptTemplateScalarFieldEnum = {
+    id: 'id',
+    slug: 'slug',
+    label: 'label',
+    emoji: 'emoji',
+    instruction: 'instruction',
+    structure: 'structure',
+    example: 'example',
+    category: 'category',
+    target: 'target',
+    isActive: 'isActive',
+    sortOrder: 'sortOrder',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
+exports.PromptConfigScalarFieldEnum = {
+    key: 'key',
+    value: 'value',
+    description: 'description',
+    updatedAt: 'updatedAt'
+};
+exports.ModuleConfigScalarFieldEnum = {
+    id: 'id',
+    name: 'name',
+    description: 'description',
+    availability: 'availability',
+    minimumPlan: 'minimumPlan',
+    isVisible: 'isVisible',
+    promptHint: 'promptHint',
+    inputHelp: 'inputHelp',
+    examples: 'examples',
+    updatedAt: 'updatedAt'
+};
 exports.SortOrder = {
     asc: 'asc',
     desc: 'desc'
+};
+exports.NullableJsonNullValueInput = {
+    DbNull: exports.DbNull,
+    JsonNull: exports.JsonNull
 };
 exports.QueryMode = {
     default: 'default',
@@ -200,4 +240,9 @@ exports.QueryMode = {
 exports.NullsOrder = {
     first: 'first',
     last: 'last'
+};
+exports.JsonNullValueFilter = {
+    DbNull: exports.DbNull,
+    JsonNull: exports.JsonNull,
+    AnyNull: exports.AnyNull
 };

@@ -5,7 +5,7 @@ import {
   getPromptConfigMap,
 } from "./catalog.service";
 
-const TONE_PROMPTS: Record<string, string> = {
+const DEFAULT_TONE_PROMPTS: Record<string, string> = {
   smart:         'Be insightful, add a unique perspective, and provide value. Sound knowledgeable but approachable.',
   viral:         'Make it shareable and punchy. Use a strong hook. Create curiosity or spark emotion. Think retweet-worthy.',
   funny:         'Be witty and clever. Use wordplay or unexpected angles. Keep it light and entertaining.',
@@ -55,6 +55,26 @@ async function resolveGenerationConfig() {
   }
 }
 
+export async function getToneCatalog(): Promise<Record<string, string>> {
+  const fallback = DEFAULT_TONE_PROMPTS;
+  const config = await resolveGenerationConfig();
+  const raw = config.tone_catalog_json;
+  if (!raw) return fallback;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return fallback;
+    const safe = Object.fromEntries(
+      Object.entries(parsed)
+        .filter(([k, v]) => typeof k === "string" && typeof v === "string" && k.trim() && v.trim())
+        .map(([k, v]) => [k.trim(), (v as string).trim()]),
+    );
+    return Object.keys(safe).length ? safe : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 async function resolveTemplateInstruction(
   templateId: string | undefined,
   target: "tweet" | "reply",
@@ -96,7 +116,8 @@ export async function generateReply(
   userPrompt?: string,
 ): Promise<{ reply: string; tokens: number }> {
   const openai = getClient(userApiKey);
-  const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
+  const toneMap = await getToneCatalog();
+  const toneInstruction = toneMap[tone] || toneMap.smart || DEFAULT_TONE_PROMPTS.smart;
   const lengthInstruction = buildLengthInstruction(wordCount);
   const templateInstruction = await resolveTemplateInstruction(templateId, "reply");
   const customPrompt = userPrompt?.trim()
@@ -185,7 +206,8 @@ export async function createTweet(
   userPrompt?: string,
 ): Promise<{ tweet: string; tokens: number }> {
   const openai = getClient(userApiKey);
-  const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
+  const toneMap = await getToneCatalog();
+  const toneInstruction = toneMap[tone] || toneMap.smart || DEFAULT_TONE_PROMPTS.smart;
   const lengthInstruction = buildLengthInstruction(wordCount);
   const templateInstruction = await resolveTemplateInstruction(templateId, "tweet");
   const customPrompt = userPrompt?.trim()
@@ -236,7 +258,8 @@ export async function rewriteTweet(
   userPrompt?: string,
 ): Promise<{ rewrite: string; tokens: number }> {
   const openai = getClient(userApiKey);
-  const toneInstruction = TONE_PROMPTS[tone] || TONE_PROMPTS.smart;
+  const toneMap = await getToneCatalog();
+  const toneInstruction = toneMap[tone] || toneMap.smart || DEFAULT_TONE_PROMPTS.smart;
   const lengthInstruction = buildLengthInstruction(wordCount);
   const templateInstruction = await resolveTemplateInstruction(templateId, "tweet");
   const customPrompt = userPrompt?.trim()

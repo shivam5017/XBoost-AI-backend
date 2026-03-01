@@ -39,6 +39,8 @@ exports.createTweet = createTweet;
 exports.rewriteTweet = rewriteTweet;
 exports.markPosted = markPosted;
 exports.getTemplates = getTemplates;
+exports.getTemplatesCatalog = getTemplatesCatalog;
+exports.getTones = getTones;
 exports.viralHookIntel = viralHookIntel;
 exports.preLaunchOptimize = preLaunchOptimize;
 exports.viralScore = viralScore;
@@ -54,6 +56,7 @@ exports.repurposeContent = repurposeContent;
 exports.monetizationToolkit = monetizationToolkit;
 const db_1 = require("../lib/db");
 const AIService = __importStar(require("../services/ai.service"));
+const catalog_service_1 = require("../services/catalog.service");
 const usage_service_1 = require("../services/usage.service");
 const timezone_1 = require("../utils/timezone");
 const apikey_service_1 = require("../services/apikey.service");
@@ -299,7 +302,16 @@ async function markPosted(req, res) {
 }
 // ── GET /ai/templates ─────────────────────────────────────────────────────────
 async function getTemplates(_req, res) {
-    res.json(AIService.TEMPLATES);
+    const templates = await AIService.getActiveTemplates("all");
+    res.json(templates);
+}
+async function getTemplatesCatalog(_req, res) {
+    const templates = await (0, catalog_service_1.listTemplates)();
+    res.json(templates);
+}
+async function getTones(_req, res) {
+    const tones = await AIService.getToneCatalog();
+    res.json(tones);
 }
 async function viralHookIntel(req, res) {
     if (!(await requireFeature(req, res, "viralHookIntelligence")))

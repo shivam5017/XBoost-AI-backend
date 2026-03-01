@@ -16,6 +16,8 @@ const aiLimiter = (0, express_rate_limit_1.default)({
 const router = (0, express_1.Router)();
 router.use(auth_1.authenticate);
 router.get('/templates', ai_controller_1.getTemplates);
+router.get('/templates/catalog', ai_controller_1.getTemplatesCatalog);
+router.get('/tones', ai_controller_1.getTones);
 router.post('/reply', aiLimiter, ai_controller_1.generateReply);
 router.post('/analyze', aiLimiter, ai_controller_1.analyzeTweet);
 router.post('/create', aiLimiter, ai_controller_1.createTweet);

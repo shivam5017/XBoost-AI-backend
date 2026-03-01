@@ -8,6 +8,7 @@ import {
   markPosted,
   getTemplates,
   getTemplatesCatalog,
+  getTones,
   viralHookIntel,
   preLaunchOptimize,
   trendRadar,
@@ -36,6 +37,7 @@ router.use(authenticate);
 
 router.get('/templates',     getTemplates);          
 router.get('/templates/catalog', getTemplatesCatalog);
+router.get('/tones', getTones);
 router.post('/reply',        aiLimiter, generateReply);
 router.post('/analyze',      aiLimiter, analyzeTweet);
 router.post('/create',       aiLimiter, createTweet);

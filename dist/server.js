@@ -14,6 +14,7 @@ const analytics_1 = __importDefault(require("./routes/analytics"));
 const streak_1 = __importDefault(require("./routes/streak"));
 const reply_1 = __importDefault(require("./routes/reply"));
 const billing_1 = __importDefault(require("./routes/billing"));
+const admin_1 = __importDefault(require("./routes/admin"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4500;
@@ -59,7 +60,7 @@ const corsOptions = {
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-timezone"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-timezone", "x-admin-password", "x-admin-secret"],
     optionsSuccessStatus: 204,
     preflightContinue: false,
 };
@@ -70,7 +71,7 @@ app.use((req, res, next) => {
         res.header("Access-Control-Allow-Origin", origin);
         res.header("Access-Control-Allow-Credentials", "true");
         res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-        res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-timezone");
+        res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-timezone, x-admin-password, x-admin-secret");
     }
     if (req.method === "OPTIONS") {
         return res.sendStatus(204);
@@ -99,6 +100,7 @@ app.use("/analytics", analytics_1.default);
 app.use("/streak", streak_1.default);
 app.use("/reply", reply_1.default);
 app.use("/billing", billing_1.default);
+app.use("/admin", admin_1.default);
 app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
 });

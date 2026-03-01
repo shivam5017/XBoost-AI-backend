@@ -1,0 +1,16 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = require("../middleware/auth");
+const admin_1 = require("../middleware/admin");
+const admin_controller_1 = require("../controllers/admin.controller");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticate, admin_1.requireAdmin);
+router.get("/templates", admin_controller_1.getAdminTemplates);
+router.post("/templates", admin_controller_1.saveAdminTemplate);
+router.delete("/templates/:slug", admin_controller_1.removeAdminTemplate);
+router.get("/prompts", admin_controller_1.getAdminPromptConfigs);
+router.put("/prompts/:key", admin_controller_1.saveAdminPromptConfig);
+router.get("/modules", admin_controller_1.getAdminModuleConfigs);
+router.put("/modules/:featureId", admin_controller_1.saveAdminModuleConfig);
+exports.default = router;

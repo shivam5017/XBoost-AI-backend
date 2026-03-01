@@ -392,7 +392,10 @@ export const ModelName = {
   AIUsage: 'AIUsage',
   Subscription: 'Subscription',
   DailyUsage: 'DailyUsage',
-  Payment: 'Payment'
+  Payment: 'Payment',
+  PromptTemplate: 'PromptTemplate',
+  PromptConfig: 'PromptConfig',
+  ModuleConfig: 'ModuleConfig'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -408,7 +411,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "reply" | "dailyStats" | "streak" | "analytics" | "aIUsage" | "subscription" | "dailyUsage" | "payment"
+    modelProps: "user" | "reply" | "dailyStats" | "streak" | "analytics" | "aIUsage" | "subscription" | "dailyUsage" | "payment" | "promptTemplate" | "promptConfig" | "moduleConfig"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1078,6 +1081,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PromptTemplate: {
+      payload: Prisma.$PromptTemplatePayload<ExtArgs>
+      fields: Prisma.PromptTemplateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PromptTemplateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PromptTemplateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        findFirst: {
+          args: Prisma.PromptTemplateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PromptTemplateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        findMany: {
+          args: Prisma.PromptTemplateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>[]
+        }
+        create: {
+          args: Prisma.PromptTemplateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        createMany: {
+          args: Prisma.PromptTemplateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PromptTemplateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>[]
+        }
+        delete: {
+          args: Prisma.PromptTemplateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        update: {
+          args: Prisma.PromptTemplateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        deleteMany: {
+          args: Prisma.PromptTemplateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PromptTemplateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PromptTemplateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>[]
+        }
+        upsert: {
+          args: Prisma.PromptTemplateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptTemplatePayload>
+        }
+        aggregate: {
+          args: Prisma.PromptTemplateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePromptTemplate>
+        }
+        groupBy: {
+          args: Prisma.PromptTemplateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PromptTemplateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PromptTemplateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PromptTemplateCountAggregateOutputType> | number
+        }
+      }
+    }
+    PromptConfig: {
+      payload: Prisma.$PromptConfigPayload<ExtArgs>
+      fields: Prisma.PromptConfigFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PromptConfigFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptConfigPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PromptConfigFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptConfigPayload>
+        }
+        findFirst: {
+          args: Prisma.PromptConfigFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptConfigPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PromptConfigFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptConfigPayload>
+        }
+        findMany: {
+          args: Prisma.PromptConfigFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptConfigPayload>[]
+        }
+        create: {
+          args: Prisma.PromptConfigCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptConfigPayload>
+        }
+        createMany: {
+          args: Prisma.PromptConfigCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PromptConfigCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptConfigPayload>[]
+        }
+        delete: {
+          args: Prisma.PromptConfigDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptConfigPayload>
+        }
+        update: {
+          args: Prisma.PromptConfigUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptConfigPayload>
+        }
+        deleteMany: {
+          args: Prisma.PromptConfigDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PromptConfigUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PromptConfigUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptConfigPayload>[]
+        }
+        upsert: {
+          args: Prisma.PromptConfigUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromptConfigPayload>
+        }
+        aggregate: {
+          args: Prisma.PromptConfigAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePromptConfig>
+        }
+        groupBy: {
+          args: Prisma.PromptConfigGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PromptConfigGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PromptConfigCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PromptConfigCountAggregateOutputType> | number
+        }
+      }
+    }
+    ModuleConfig: {
+      payload: Prisma.$ModuleConfigPayload<ExtArgs>
+      fields: Prisma.ModuleConfigFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ModuleConfigFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ModuleConfigPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ModuleConfigFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ModuleConfigPayload>
+        }
+        findFirst: {
+          args: Prisma.ModuleConfigFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ModuleConfigPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ModuleConfigFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ModuleConfigPayload>
+        }
+        findMany: {
+          args: Prisma.ModuleConfigFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ModuleConfigPayload>[]
+        }
+        create: {
+          args: Prisma.ModuleConfigCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ModuleConfigPayload>
+        }
+        createMany: {
+          args: Prisma.ModuleConfigCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ModuleConfigCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ModuleConfigPayload>[]
+        }
+        delete: {
+          args: Prisma.ModuleConfigDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ModuleConfigPayload>
+        }
+        update: {
+          args: Prisma.ModuleConfigUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ModuleConfigPayload>
+        }
+        deleteMany: {
+          args: Prisma.ModuleConfigDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ModuleConfigUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ModuleConfigUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ModuleConfigPayload>[]
+        }
+        upsert: {
+          args: Prisma.ModuleConfigUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ModuleConfigPayload>
+        }
+        aggregate: {
+          args: Prisma.ModuleConfigAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateModuleConfig>
+        }
+        groupBy: {
+          args: Prisma.ModuleConfigGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ModuleConfigGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ModuleConfigCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ModuleConfigCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1248,12 +1473,65 @@ export const PaymentScalarFieldEnum = {
 export type PaymentScalarFieldEnum = (typeof PaymentScalarFieldEnum)[keyof typeof PaymentScalarFieldEnum]
 
 
+export const PromptTemplateScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  label: 'label',
+  emoji: 'emoji',
+  instruction: 'instruction',
+  structure: 'structure',
+  example: 'example',
+  category: 'category',
+  target: 'target',
+  isActive: 'isActive',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PromptTemplateScalarFieldEnum = (typeof PromptTemplateScalarFieldEnum)[keyof typeof PromptTemplateScalarFieldEnum]
+
+
+export const PromptConfigScalarFieldEnum = {
+  key: 'key',
+  value: 'value',
+  description: 'description',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PromptConfigScalarFieldEnum = (typeof PromptConfigScalarFieldEnum)[keyof typeof PromptConfigScalarFieldEnum]
+
+
+export const ModuleConfigScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  availability: 'availability',
+  minimumPlan: 'minimumPlan',
+  isVisible: 'isVisible',
+  promptHint: 'promptHint',
+  inputHelp: 'inputHelp',
+  examples: 'examples',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ModuleConfigScalarFieldEnum = (typeof ModuleConfigScalarFieldEnum)[keyof typeof ModuleConfigScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {
@@ -1270,6 +1548,15 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
 
@@ -1366,6 +1653,20 @@ export type EnumSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInputTyp
  * Reference to a field of type 'SubscriptionStatus[]'
  */
 export type ListEnumSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SubscriptionStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 /**
@@ -1472,6 +1773,9 @@ export type GlobalOmitConfig = {
   subscription?: Prisma.SubscriptionOmit
   dailyUsage?: Prisma.DailyUsageOmit
   payment?: Prisma.PaymentOmit
+  promptTemplate?: Prisma.PromptTemplateOmit
+  promptConfig?: Prisma.PromptConfigOmit
+  moduleConfig?: Prisma.ModuleConfigOmit
 }
 
 /* Types for Logging */

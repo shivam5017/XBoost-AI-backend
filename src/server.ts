@@ -63,7 +63,7 @@ const corsOptions: cors.CorsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-timezone"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-timezone", "x-admin-password", "x-admin-secret"],
   optionsSuccessStatus: 204,
   preflightContinue: false,
 };
@@ -77,7 +77,7 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
     res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-timezone");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-timezone, x-admin-password, x-admin-secret");
   }
 
   if (req.method === "OPTIONS") {

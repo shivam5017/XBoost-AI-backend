@@ -275,6 +275,11 @@ export async function getTemplatesCatalog(_req: AuthRequest, res: Response): Pro
   res.json(templates);
 }
 
+export async function getTones(_req: AuthRequest, res: Response): Promise<void> {
+  const tones = await AIService.getToneCatalog();
+  res.json(tones);
+}
+
 export async function viralHookIntel(req: AuthRequest, res: Response): Promise<void> {
   if (!(await requireFeature(req, res, "viralHookIntelligence"))) return;
 

@@ -48,7 +48,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.defineExtension = exports.NullsOrder = exports.QueryMode = exports.SortOrder = exports.PaymentScalarFieldEnum = exports.DailyUsageScalarFieldEnum = exports.SubscriptionScalarFieldEnum = exports.AIUsageScalarFieldEnum = exports.AnalyticsScalarFieldEnum = exports.StreakScalarFieldEnum = exports.DailyStatsScalarFieldEnum = exports.ReplyScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.prismaVersion = exports.getExtensionContext = exports.Decimal = exports.Sql = exports.raw = exports.join = exports.empty = exports.sql = exports.PrismaClientValidationError = exports.PrismaClientInitializationError = exports.PrismaClientRustPanicError = exports.PrismaClientUnknownRequestError = exports.PrismaClientKnownRequestError = void 0;
+exports.defineExtension = exports.JsonNullValueFilter = exports.NullsOrder = exports.QueryMode = exports.NullableJsonNullValueInput = exports.SortOrder = exports.ModuleConfigScalarFieldEnum = exports.PromptConfigScalarFieldEnum = exports.PromptTemplateScalarFieldEnum = exports.PaymentScalarFieldEnum = exports.DailyUsageScalarFieldEnum = exports.SubscriptionScalarFieldEnum = exports.AIUsageScalarFieldEnum = exports.AnalyticsScalarFieldEnum = exports.StreakScalarFieldEnum = exports.DailyStatsScalarFieldEnum = exports.ReplyScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.prismaVersion = exports.getExtensionContext = exports.Decimal = exports.Sql = exports.raw = exports.join = exports.empty = exports.sql = exports.PrismaClientValidationError = exports.PrismaClientInitializationError = exports.PrismaClientRustPanicError = exports.PrismaClientUnknownRequestError = exports.PrismaClientKnownRequestError = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/client"));
 /**
  * Prisma Errors
@@ -111,7 +111,10 @@ exports.ModelName = {
     AIUsage: 'AIUsage',
     Subscription: 'Subscription',
     DailyUsage: 'DailyUsage',
-    Payment: 'Payment'
+    Payment: 'Payment',
+    PromptTemplate: 'PromptTemplate',
+    PromptConfig: 'PromptConfig',
+    ModuleConfig: 'ModuleConfig'
 };
 /**
  * Enums
@@ -217,9 +220,46 @@ exports.PaymentScalarFieldEnum = {
     dodoInvoiceId: 'dodoInvoiceId',
     createdAt: 'createdAt'
 };
+exports.PromptTemplateScalarFieldEnum = {
+    id: 'id',
+    slug: 'slug',
+    label: 'label',
+    emoji: 'emoji',
+    instruction: 'instruction',
+    structure: 'structure',
+    example: 'example',
+    category: 'category',
+    target: 'target',
+    isActive: 'isActive',
+    sortOrder: 'sortOrder',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
+exports.PromptConfigScalarFieldEnum = {
+    key: 'key',
+    value: 'value',
+    description: 'description',
+    updatedAt: 'updatedAt'
+};
+exports.ModuleConfigScalarFieldEnum = {
+    id: 'id',
+    name: 'name',
+    description: 'description',
+    availability: 'availability',
+    minimumPlan: 'minimumPlan',
+    isVisible: 'isVisible',
+    promptHint: 'promptHint',
+    inputHelp: 'inputHelp',
+    examples: 'examples',
+    updatedAt: 'updatedAt'
+};
 exports.SortOrder = {
     asc: 'asc',
     desc: 'desc'
+};
+exports.NullableJsonNullValueInput = {
+    DbNull: exports.DbNull,
+    JsonNull: exports.JsonNull
 };
 exports.QueryMode = {
     default: 'default',
@@ -228,5 +268,10 @@ exports.QueryMode = {
 exports.NullsOrder = {
     first: 'first',
     last: 'last'
+};
+exports.JsonNullValueFilter = {
+    DbNull: exports.DbNull,
+    JsonNull: exports.JsonNull,
+    AnyNull: exports.AnyNull
 };
 exports.defineExtension = runtime.Extensions.defineExtension;
