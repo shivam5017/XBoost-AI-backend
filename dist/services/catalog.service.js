@@ -199,6 +199,11 @@ const tableAvailability = {
     PromptConfig: undefined,
     ModuleConfig: undefined,
 };
+function normalizeMultiline(value) {
+    if (value == null)
+        return null;
+    return value.replace(/\\n/g, "\n");
+}
 function isPrismaUnavailableError(error) {
     const code = error?.code;
     const message = String(error?.message || "");
@@ -235,9 +240,9 @@ async function seedTemplatesIfEmpty() {
                 slug: tpl.slug,
                 label: tpl.label,
                 emoji: tpl.emoji || "🧩",
-                instruction: tpl.instruction,
-                structure: tpl.structure || null,
-                example: tpl.example || null,
+                instruction: normalizeMultiline(tpl.instruction) || "",
+                structure: normalizeMultiline(tpl.structure || null),
+                example: normalizeMultiline(tpl.example || null),
                 category: tpl.category || "general",
                 target: tpl.target || "both",
                 isActive: tpl.isActive ?? true,
@@ -287,9 +292,9 @@ async function getActiveTemplateMap(target = "all") {
                 label: t.label,
                 emoji: t.emoji || "🧩",
                 instruction: [
-                    t.instruction,
-                    t.structure ? `Format style:\n${t.structure}` : "",
-                    t.example ? `Reference example:\n${t.example}` : "",
+                    normalizeMultiline(t.instruction) || "",
+                    normalizeMultiline(t.structure || null) ? `Format style:\n${normalizeMultiline(t.structure || null)}` : "",
+                    normalizeMultiline(t.example || null) ? `Reference example:\n${normalizeMultiline(t.example || null)}` : "",
                 ]
                     .filter(Boolean)
                     .join("\n\n"),
@@ -318,9 +323,9 @@ async function getActiveTemplateMap(target = "all") {
                 label: row.label,
                 emoji: row.emoji,
                 instruction: [
-                    row.instruction,
-                    row.structure ? `Format style:\n${row.structure}` : "",
-                    row.example ? `Reference example:\n${row.example}` : "",
+                    normalizeMultiline(row.instruction) || "",
+                    normalizeMultiline(row.structure || null) ? `Format style:\n${normalizeMultiline(row.structure || null)}` : "",
+                    normalizeMultiline(row.example || null) ? `Reference example:\n${normalizeMultiline(row.example || null)}` : "",
                 ]
                     .filter(Boolean)
                     .join("\n\n"),
@@ -338,9 +343,9 @@ async function getActiveTemplateMap(target = "all") {
                     label: t.label,
                     emoji: t.emoji || "🧩",
                     instruction: [
-                        t.instruction,
-                        t.structure ? `Format style:\n${t.structure}` : "",
-                        t.example ? `Reference example:\n${t.example}` : "",
+                        normalizeMultiline(t.instruction) || "",
+                        normalizeMultiline(t.structure || null) ? `Format style:\n${normalizeMultiline(t.structure || null)}` : "",
+                        normalizeMultiline(t.example || null) ? `Reference example:\n${normalizeMultiline(t.example || null)}` : "",
                     ]
                         .filter(Boolean)
                         .join("\n\n"),
@@ -358,9 +363,9 @@ async function listTemplates() {
             slug: tpl.slug,
             label: tpl.label,
             emoji: tpl.emoji || "🧩",
-            instruction: tpl.instruction,
-            structure: tpl.structure || null,
-            example: tpl.example || null,
+            instruction: normalizeMultiline(tpl.instruction) || "",
+            structure: normalizeMultiline(tpl.structure || null),
+            example: normalizeMultiline(tpl.example || null),
             category: tpl.category || "general",
             target: tpl.target || "both",
             isActive: tpl.isActive ?? true,
@@ -368,9 +373,15 @@ async function listTemplates() {
         }));
     }
     try {
-        return await db_1.prisma.promptTemplate.findMany({
+        const rows = await db_1.prisma.promptTemplate.findMany({
             orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
         });
+        return rows.map((row) => ({
+            ...row,
+            instruction: normalizeMultiline(row.instruction) || "",
+            structure: normalizeMultiline(row.structure),
+            example: normalizeMultiline(row.example),
+        }));
     }
     catch (error) {
         if (isPrismaUnavailableError(error))
@@ -388,9 +399,9 @@ async function upsertTemplate(input) {
             slug: input.slug,
             label: input.label,
             emoji: input.emoji || "🧩",
-            instruction: input.instruction,
-            structure: input.structure || null,
-            example: input.example || null,
+            instruction: normalizeMultiline(input.instruction) || "",
+            structure: normalizeMultiline(input.structure || null),
+            example: normalizeMultiline(input.example || null),
             category: input.category || "general",
             target: input.target || "both",
             isActive: input.isActive ?? true,
@@ -399,9 +410,9 @@ async function upsertTemplate(input) {
         update: {
             label: input.label,
             emoji: input.emoji || "🧩",
-            instruction: input.instruction,
-            structure: input.structure || null,
-            example: input.example || null,
+            instruction: normalizeMultiline(input.instruction) || "",
+            structure: normalizeMultiline(input.structure || null),
+            example: normalizeMultiline(input.example || null),
             category: input.category || "general",
             target: input.target || "both",
             isActive: input.isActive ?? true,
