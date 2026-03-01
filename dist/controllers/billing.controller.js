@@ -4,6 +4,7 @@ exports.createCheckout = createCheckout;
 exports.syncCheckout = syncCheckout;
 exports.createPortal = createPortal;
 exports.getPlanCatalog = getPlanCatalog;
+exports.getRoadmap = getRoadmap;
 exports.getFeatureCatalog = getFeatureCatalog;
 exports.getSubscription = getSubscription;
 exports.getPaymentHistory = getPaymentHistory;
@@ -13,6 +14,7 @@ const zod_1 = require("zod");
 const enums_1 = require("../lib/generated/prisma/enums");
 const db_1 = require("../lib/db");
 const billing_service_1 = require("../services/billing.service");
+const catalog_service_1 = require("../services/catalog.service");
 const timezone_1 = require("../utils/timezone");
 const checkoutSchema = zod_1.z.object({
     planId: zod_1.z.enum([enums_1.PlanId.starter, enums_1.PlanId.pro]),
@@ -107,7 +109,10 @@ async function createPortal(req, res) {
     }
 }
 async function getPlanCatalog(_req, res) {
-    return res.json((0, billing_service_1.getPlans)());
+    return res.json(await (0, billing_service_1.getPlans)());
+}
+async function getRoadmap(_req, res) {
+    return res.json(await (0, catalog_service_1.listRoadmapItems)(false));
 }
 async function getFeatureCatalog(req, res) {
     if (!req.userId) {

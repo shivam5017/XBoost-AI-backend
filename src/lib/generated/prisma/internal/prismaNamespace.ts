@@ -395,7 +395,8 @@ export const ModelName = {
   Payment: 'Payment',
   PromptTemplate: 'PromptTemplate',
   PromptConfig: 'PromptConfig',
-  ModuleConfig: 'ModuleConfig'
+  ModuleConfig: 'ModuleConfig',
+  RoadmapItem: 'RoadmapItem'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -411,7 +412,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "reply" | "dailyStats" | "streak" | "analytics" | "aIUsage" | "subscription" | "dailyUsage" | "payment" | "promptTemplate" | "promptConfig" | "moduleConfig"
+    modelProps: "user" | "reply" | "dailyStats" | "streak" | "analytics" | "aIUsage" | "subscription" | "dailyUsage" | "payment" | "promptTemplate" | "promptConfig" | "moduleConfig" | "roadmapItem"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1303,6 +1304,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RoadmapItem: {
+      payload: Prisma.$RoadmapItemPayload<ExtArgs>
+      fields: Prisma.RoadmapItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RoadmapItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RoadmapItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapItemPayload>
+        }
+        findFirst: {
+          args: Prisma.RoadmapItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RoadmapItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapItemPayload>
+        }
+        findMany: {
+          args: Prisma.RoadmapItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapItemPayload>[]
+        }
+        create: {
+          args: Prisma.RoadmapItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapItemPayload>
+        }
+        createMany: {
+          args: Prisma.RoadmapItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RoadmapItemCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapItemPayload>[]
+        }
+        delete: {
+          args: Prisma.RoadmapItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapItemPayload>
+        }
+        update: {
+          args: Prisma.RoadmapItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.RoadmapItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RoadmapItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RoadmapItemUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapItemPayload>[]
+        }
+        upsert: {
+          args: Prisma.RoadmapItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoadmapItemPayload>
+        }
+        aggregate: {
+          args: Prisma.RoadmapItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRoadmapItem>
+        }
+        groupBy: {
+          args: Prisma.RoadmapItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RoadmapItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RoadmapItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RoadmapItemCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1516,6 +1591,22 @@ export const ModuleConfigScalarFieldEnum = {
 } as const
 
 export type ModuleConfigScalarFieldEnum = (typeof ModuleConfigScalarFieldEnum)[keyof typeof ModuleConfigScalarFieldEnum]
+
+
+export const RoadmapItemScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  name: 'name',
+  description: 'description',
+  eta: 'eta',
+  status: 'status',
+  isActive: 'isActive',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RoadmapItemScalarFieldEnum = (typeof RoadmapItemScalarFieldEnum)[keyof typeof RoadmapItemScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1776,6 +1867,7 @@ export type GlobalOmitConfig = {
   promptTemplate?: Prisma.PromptTemplateOmit
   promptConfig?: Prisma.PromptConfigOmit
   moduleConfig?: Prisma.ModuleConfigOmit
+  roadmapItem?: Prisma.RoadmapItemOmit
 }
 
 /* Types for Logging */

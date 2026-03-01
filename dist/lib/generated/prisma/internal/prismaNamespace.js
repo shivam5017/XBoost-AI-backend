@@ -48,7 +48,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.defineExtension = exports.JsonNullValueFilter = exports.NullsOrder = exports.QueryMode = exports.NullableJsonNullValueInput = exports.SortOrder = exports.ModuleConfigScalarFieldEnum = exports.PromptConfigScalarFieldEnum = exports.PromptTemplateScalarFieldEnum = exports.PaymentScalarFieldEnum = exports.DailyUsageScalarFieldEnum = exports.SubscriptionScalarFieldEnum = exports.AIUsageScalarFieldEnum = exports.AnalyticsScalarFieldEnum = exports.StreakScalarFieldEnum = exports.DailyStatsScalarFieldEnum = exports.ReplyScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.prismaVersion = exports.getExtensionContext = exports.Decimal = exports.Sql = exports.raw = exports.join = exports.empty = exports.sql = exports.PrismaClientValidationError = exports.PrismaClientInitializationError = exports.PrismaClientRustPanicError = exports.PrismaClientUnknownRequestError = exports.PrismaClientKnownRequestError = void 0;
+exports.defineExtension = exports.JsonNullValueFilter = exports.NullsOrder = exports.QueryMode = exports.NullableJsonNullValueInput = exports.SortOrder = exports.RoadmapItemScalarFieldEnum = exports.ModuleConfigScalarFieldEnum = exports.PromptConfigScalarFieldEnum = exports.PromptTemplateScalarFieldEnum = exports.PaymentScalarFieldEnum = exports.DailyUsageScalarFieldEnum = exports.SubscriptionScalarFieldEnum = exports.AIUsageScalarFieldEnum = exports.AnalyticsScalarFieldEnum = exports.StreakScalarFieldEnum = exports.DailyStatsScalarFieldEnum = exports.ReplyScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.prismaVersion = exports.getExtensionContext = exports.Decimal = exports.Sql = exports.raw = exports.join = exports.empty = exports.sql = exports.PrismaClientValidationError = exports.PrismaClientInitializationError = exports.PrismaClientRustPanicError = exports.PrismaClientUnknownRequestError = exports.PrismaClientKnownRequestError = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/client"));
 /**
  * Prisma Errors
@@ -114,7 +114,8 @@ exports.ModelName = {
     Payment: 'Payment',
     PromptTemplate: 'PromptTemplate',
     PromptConfig: 'PromptConfig',
-    ModuleConfig: 'ModuleConfig'
+    ModuleConfig: 'ModuleConfig',
+    RoadmapItem: 'RoadmapItem'
 };
 /**
  * Enums
@@ -251,6 +252,18 @@ exports.ModuleConfigScalarFieldEnum = {
     promptHint: 'promptHint',
     inputHelp: 'inputHelp',
     examples: 'examples',
+    updatedAt: 'updatedAt'
+};
+exports.RoadmapItemScalarFieldEnum = {
+    id: 'id',
+    key: 'key',
+    name: 'name',
+    description: 'description',
+    eta: 'eta',
+    status: 'status',
+    isActive: 'isActive',
+    sortOrder: 'sortOrder',
+    createdAt: 'createdAt',
     updatedAt: 'updatedAt'
 };
 exports.SortOrder = {

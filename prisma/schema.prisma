@@ -262,3 +262,20 @@ model ModuleConfig {
   examples     Json?
   updatedAt    DateTime @updatedAt
 }
+
+// ─── RoadmapItem ─────────────────────────────────────────────────────────────
+// Admin-managed items shown in dashboard/features upcoming sections.
+model RoadmapItem {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String
+  eta         String?
+  status      String   @default("upcoming") // upcoming | active
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, status, sortOrder])
+}

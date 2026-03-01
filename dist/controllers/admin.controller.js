@@ -7,6 +7,9 @@ exports.getAdminPromptConfigs = getAdminPromptConfigs;
 exports.saveAdminPromptConfig = saveAdminPromptConfig;
 exports.getAdminModuleConfigs = getAdminModuleConfigs;
 exports.saveAdminModuleConfig = saveAdminModuleConfig;
+exports.getAdminRoadmap = getAdminRoadmap;
+exports.saveAdminRoadmap = saveAdminRoadmap;
+exports.removeAdminRoadmap = removeAdminRoadmap;
 const zod_1 = require("zod");
 const enums_1 = require("../lib/generated/prisma/enums");
 const catalog_service_1 = require("../services/catalog.service");
@@ -35,6 +38,15 @@ const moduleSchema = zod_1.z.object({
     promptHint: zod_1.z.string().max(500).optional(),
     inputHelp: zod_1.z.any().optional(),
     examples: zod_1.z.any().optional(),
+});
+const roadmapSchema = zod_1.z.object({
+    key: zod_1.z.string().min(2).max(80).regex(/^[a-z0-9_\-]+$/),
+    name: zod_1.z.string().min(2).max(140),
+    description: zod_1.z.string().min(8).max(600),
+    eta: zod_1.z.string().max(80).optional(),
+    status: zod_1.z.enum(["upcoming", "active"]).optional(),
+    isActive: zod_1.z.boolean().optional(),
+    sortOrder: zod_1.z.number().int().min(0).max(10000).optional(),
 });
 async function getAdminTemplates(_req, res) {
     const list = await (0, catalog_service_1.listTemplates)();
@@ -103,5 +115,34 @@ async function saveAdminModuleConfig(req, res) {
     }
     catch (error) {
         return res.status(400).json({ error: error?.message || "Failed to save module config" });
+    }
+}
+async function getAdminRoadmap(_req, res) {
+    const rows = await (0, catalog_service_1.listRoadmapItems)(true);
+    res.json(rows);
+}
+async function saveAdminRoadmap(req, res) {
+    const parsed = roadmapSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues });
+    }
+    try {
+        const row = await (0, catalog_service_1.upsertRoadmapItem)(parsed.data);
+        return res.json(row);
+    }
+    catch (error) {
+        return res.status(400).json({ error: error?.message || "Failed to save roadmap item" });
+    }
+}
+async function removeAdminRoadmap(req, res) {
+    const key = String(req.params.key || "").trim();
+    if (!key)
+        return res.status(400).json({ error: "key required" });
+    try {
+        await (0, catalog_service_1.deleteRoadmapItem)(key);
+        return res.json({ success: true });
+    }
+    catch (error) {
+        return res.status(400).json({ error: error?.message || "Failed to delete roadmap item" });
     }
 }

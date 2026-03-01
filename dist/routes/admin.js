@@ -13,4 +13,7 @@ router.get("/prompts", admin_controller_1.getAdminPromptConfigs);
 router.put("/prompts/:key", admin_controller_1.saveAdminPromptConfig);
 router.get("/modules", admin_controller_1.getAdminModuleConfigs);
 router.put("/modules/:featureId", admin_controller_1.saveAdminModuleConfig);
+router.get("/roadmap", admin_controller_1.getAdminRoadmap);
+router.post("/roadmap", admin_controller_1.saveAdminRoadmap);
+router.delete("/roadmap/:key", admin_controller_1.removeAdminRoadmap);
 exports.default = router;

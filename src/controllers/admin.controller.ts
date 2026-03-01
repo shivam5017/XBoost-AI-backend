@@ -3,10 +3,13 @@ import { z } from "zod";
 import { AuthRequest } from "../middleware/auth";
 import { PlanId } from "../lib/generated/prisma/enums";
 import {
+  deleteRoadmapItem,
   deleteTemplate,
+  listRoadmapItems,
   listModuleConfigs,
   listPromptConfigs,
   listTemplates,
+  upsertRoadmapItem,
   upsertModuleConfig,
   upsertPromptConfig,
   upsertTemplate,
@@ -39,6 +42,16 @@ const moduleSchema = z.object({
   promptHint: z.string().max(500).optional(),
   inputHelp: z.any().optional(),
   examples: z.any().optional(),
+});
+
+const roadmapSchema = z.object({
+  key: z.string().min(2).max(80).regex(/^[a-z0-9_\-]+$/),
+  name: z.string().min(2).max(140),
+  description: z.string().min(8).max(600),
+  eta: z.string().max(80).optional(),
+  status: z.enum(["upcoming", "active"]).optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).max(10000).optional(),
 });
 
 export async function getAdminTemplates(_req: AuthRequest, res: Response) {
@@ -113,5 +126,36 @@ export async function saveAdminModuleConfig(req: AuthRequest, res: Response) {
     return res.json(row);
   } catch (error: any) {
     return res.status(400).json({ error: error?.message || "Failed to save module config" });
+  }
+}
+
+export async function getAdminRoadmap(_req: AuthRequest, res: Response) {
+  const rows = await listRoadmapItems(true);
+  res.json(rows);
+}
+
+export async function saveAdminRoadmap(req: AuthRequest, res: Response) {
+  const parsed = roadmapSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.issues });
+  }
+
+  try {
+    const row = await upsertRoadmapItem(parsed.data);
+    return res.json(row);
+  } catch (error: any) {
+    return res.status(400).json({ error: error?.message || "Failed to save roadmap item" });
+  }
+}
+
+export async function removeAdminRoadmap(req: AuthRequest, res: Response) {
+  const key = String(req.params.key || "").trim();
+  if (!key) return res.status(400).json({ error: "key required" });
+
+  try {
+    await deleteRoadmapItem(key);
+    return res.json({ success: true });
+  } catch (error: any) {
+    return res.status(400).json({ error: error?.message || "Failed to delete roadmap item" });
   }
 }

@@ -237,6 +237,7 @@ const tableAvailability: Record<string, boolean | undefined> = {
   PromptTemplate: undefined,
   PromptConfig: undefined,
   ModuleConfig: undefined,
+  RoadmapItem: undefined,
 };
 
 function normalizeMultiline(value?: string | null): string | null {
@@ -256,7 +257,7 @@ function isPrismaUnavailableError(error: unknown): boolean {
   );
 }
 
-async function isTableAvailable(table: "PromptTemplate" | "PromptConfig" | "ModuleConfig") {
+async function isTableAvailable(table: "PromptTemplate" | "PromptConfig" | "ModuleConfig" | "RoadmapItem") {
   const cached = tableAvailability[table];
   if (typeof cached === "boolean") return cached;
 
@@ -271,6 +272,61 @@ async function isTableAvailable(table: "PromptTemplate" | "PromptConfig" | "Modu
   } catch {
     tableAvailability[table] = false;
     return false;
+  }
+}
+
+const DEFAULT_ROADMAP: Array<{
+  key: string;
+  name: string;
+  description: string;
+  eta?: string;
+  status: "upcoming" | "active";
+  isActive: boolean;
+  sortOrder: number;
+}> = [
+  {
+    key: "team_workspaces",
+    name: "Team Workspaces",
+    description: "Shared brand voice, team prompts, and role-based access for multi-creator teams.",
+    eta: "Q2 2026",
+    status: "upcoming",
+    isActive: true,
+    sortOrder: 10,
+  },
+  {
+    key: "auto_ab_variants",
+    name: "Auto A/B Variants",
+    description: "Generate multiple post variants with hook scoring before publishing.",
+    eta: "Q2 2026",
+    status: "upcoming",
+    isActive: true,
+    sortOrder: 20,
+  },
+  {
+    key: "competitor_pulse",
+    name: "Competitor Pulse",
+    description: "Track niche leaders and uncover weekly content gaps you can exploit.",
+    eta: "Q3 2026",
+    status: "upcoming",
+    isActive: true,
+    sortOrder: 30,
+  },
+];
+
+async function seedRoadmapIfEmpty() {
+  if (!(await isTableAvailable("RoadmapItem"))) return;
+
+  try {
+    const count = await prisma.roadmapItem.count();
+    if (count > 0) return;
+
+    await prisma.roadmapItem.createMany({
+      data: DEFAULT_ROADMAP,
+      skipDuplicates: true,
+    });
+  } catch (error) {
+    if (isPrismaUnavailableError(error)) return;
+    throw error;
   }
 }
 
@@ -593,6 +649,68 @@ export async function upsertModuleConfig(
       examples: input.examples as any,
     },
   });
+}
+
+export async function listRoadmapItems(includeInactive = false) {
+  await seedRoadmapIfEmpty();
+
+  if (!(await isTableAvailable("RoadmapItem"))) {
+    return includeInactive ? DEFAULT_ROADMAP : DEFAULT_ROADMAP.filter((item) => item.isActive);
+  }
+
+  try {
+    return await prisma.roadmapItem.findMany({
+      where: includeInactive ? {} : { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    });
+  } catch (error) {
+    if (isPrismaUnavailableError(error)) {
+      return includeInactive ? DEFAULT_ROADMAP : DEFAULT_ROADMAP.filter((item) => item.isActive);
+    }
+    throw error;
+  }
+}
+
+export async function upsertRoadmapItem(input: {
+  key: string;
+  name: string;
+  description: string;
+  eta?: string;
+  status?: "upcoming" | "active";
+  isActive?: boolean;
+  sortOrder?: number;
+}) {
+  if (!(await isTableAvailable("RoadmapItem"))) {
+    throw new Error("RoadmapItem table not available. Run prisma migration/db push.");
+  }
+
+  return prisma.roadmapItem.upsert({
+    where: { key: input.key },
+    create: {
+      key: input.key,
+      name: input.name,
+      description: input.description,
+      eta: input.eta || null,
+      status: input.status || "upcoming",
+      isActive: input.isActive ?? true,
+      sortOrder: input.sortOrder ?? 0,
+    },
+    update: {
+      name: input.name,
+      description: input.description,
+      eta: input.eta || null,
+      status: input.status || "upcoming",
+      isActive: input.isActive ?? true,
+      sortOrder: input.sortOrder ?? 0,
+    },
+  });
+}
+
+export async function deleteRoadmapItem(key: string) {
+  if (!(await isTableAvailable("RoadmapItem"))) {
+    throw new Error("RoadmapItem table not available. Run prisma migration/db push.");
+  }
+  await prisma.roadmapItem.delete({ where: { key } });
 }
 
 export function getDefaultPromptConfigMap() {

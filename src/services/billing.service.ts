@@ -52,6 +52,15 @@ export type PlanDefinition = {
   id: PlanId;
   name: string;
   price: number;
+  currency?: string;
+  pricing?: {
+    basePrice: number;
+    finalPrice: number;
+    discountPercent: number;
+    discountCode?: string | null;
+    discountName?: string | null;
+    hasDiscount: boolean;
+  };
   limits: {
     dailyReplies: number | null;
     dailyTweets: number | null;
@@ -273,6 +282,9 @@ const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
   },
 };
 
+let planCatalogCache: { at: number; plans: PlanDefinition[] } | null = null;
+const PLAN_CACHE_MS = 60 * 1000;
+
 type BillingTable = "Subscription" | "Payment" | "DailyStats";
 const tableAvailabilityCache: Partial<Record<BillingTable, boolean>> = {};
 
@@ -419,6 +431,133 @@ function parseDate(dateLike?: string | Date | null): Date | null {
   if (!dateLike) return null;
   const d = new Date(dateLike);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function centsToUsd(value: number): number {
+  return Math.round((value / 100) * 100) / 100;
+}
+
+function roundPrice(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function priceDiscountPercentFromProduct(product: any): number {
+  const discount = Number(product?.price?.discount ?? 0);
+  if (!Number.isFinite(discount) || discount <= 0) return 0;
+  return Math.max(0, Math.min(100, discount));
+}
+
+function getPlanPriceCents(product: any): number {
+  const price = product?.price;
+  if (!price || typeof price !== "object") return 0;
+  if (typeof price.price === "number") return price.price;
+  if (typeof price.fixed_price === "number") return price.fixed_price;
+  return 0;
+}
+
+async function getBestActiveDiscountForProduct(dodo: DodoPayments, productId: string) {
+  const now = new Date();
+  const candidates: Array<{ percent: number; code: string; name?: string | null }> = [];
+
+  try {
+    const page = await dodo.discounts.list({ active: true, product_id: productId, page_size: 100 });
+    for (const discount of page.items || []) {
+      const expiresAt = discount.expires_at ? new Date(discount.expires_at) : null;
+      const notExpired = !expiresAt || expiresAt > now;
+      const hasRemainingUsage =
+        discount.usage_limit == null || Number(discount.times_used) < Number(discount.usage_limit);
+      const isApplicable =
+        !Array.isArray(discount.restricted_to) ||
+        !discount.restricted_to.length ||
+        discount.restricted_to.includes(productId);
+      if (!notExpired || !hasRemainingUsage || !isApplicable) continue;
+
+      const percent = discount.type === "percentage" ? Number(discount.amount) / 100 : 0;
+      if (!Number.isFinite(percent) || percent <= 0) continue;
+      candidates.push({
+        percent,
+        code: discount.code,
+        name: discount.name || null,
+      });
+    }
+  } catch {
+    return null;
+  }
+
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => b.percent - a.percent);
+  return candidates[0];
+}
+
+async function enrichPlansFromDodo(basePlans: PlanDefinition[]): Promise<PlanDefinition[]> {
+  const now = Date.now();
+  if (planCatalogCache && now - planCatalogCache.at < PLAN_CACHE_MS) {
+    return planCatalogCache.plans;
+  }
+
+  let dodo: DodoPayments;
+  try {
+    dodo = getDodoClient();
+  } catch {
+    return basePlans;
+  }
+
+  const result = [...basePlans];
+  const planToProduct: Array<{ planId: PlanId; productId: string }> = [];
+  for (const planId of [PlanId.starter, PlanId.pro]) {
+    try {
+      planToProduct.push({ planId, productId: mapPlanToProductId(planId) });
+    } catch {
+      // ignore missing plan mapping
+    }
+  }
+
+  for (const item of planToProduct) {
+    try {
+      const product = await dodo.products.retrieve(item.productId);
+      const currency = String(product?.price?.currency || "usd").toLowerCase();
+      const unitPriceCents = Number(getPlanPriceCents(product));
+      if (!Number.isFinite(unitPriceCents) || unitPriceCents <= 0) continue;
+
+      const basePrice = centsToUsd(unitPriceCents);
+      const productDiscountPercent = priceDiscountPercentFromProduct(product);
+      const activeDiscount = await getBestActiveDiscountForProduct(dodo, item.productId);
+      const discountPercent = Math.max(productDiscountPercent, activeDiscount?.percent || 0);
+      const finalPrice = roundPrice(basePrice * (1 - discountPercent / 100));
+
+      const idx = result.findIndex((p) => p.id === item.planId);
+      if (idx === -1) continue;
+
+      result[idx] = {
+        ...result[idx],
+        price: finalPrice > 0 ? finalPrice : basePrice,
+        currency,
+        pricing: {
+          basePrice,
+          finalPrice: finalPrice > 0 ? finalPrice : basePrice,
+          discountPercent,
+          discountCode: activeDiscount?.code || null,
+          discountName: activeDiscount?.name || null,
+          hasDiscount: discountPercent > 0,
+        },
+      };
+    } catch {
+      // fallback to local static prices
+    }
+  }
+
+  planCatalogCache = { at: now, plans: result };
+  return result;
+}
+
+async function resolvePlanCatalog(): Promise<Record<PlanId, PlanDefinition>> {
+  const staticPlans = [PLAN_CATALOG.free, PLAN_CATALOG.starter, PLAN_CATALOG.pro];
+  const dynamic = await enrichPlansFromDodo(staticPlans);
+  return {
+    [PlanId.free]: dynamic.find((p) => p.id === PlanId.free) || PLAN_CATALOG.free,
+    [PlanId.starter]: dynamic.find((p) => p.id === PlanId.starter) || PLAN_CATALOG.starter,
+    [PlanId.pro]: dynamic.find((p) => p.id === PlanId.pro) || PLAN_CATALOG.pro,
+  };
 }
 
 function normalizeBaseUrl(url?: string | null): string | null {
@@ -615,6 +754,7 @@ export async function getBillingSnapshot(
 ): Promise<BillingSnapshot> {
   const subscription = await ensureSubscriptionRow(userId);
   const usage = await getTodayUsage(userId, timeZone);
+  const planCatalog = await resolvePlanCatalog();
   const effectivePlan = isPaidSubscription(
     subscription.planId,
     subscription.status,
@@ -638,7 +778,7 @@ export async function getBillingSnapshot(
         subscription.gracePeriodEnds,
       ),
     },
-    plan: PLAN_CATALOG[subscription.planId],
+    plan: planCatalog[subscription.planId],
     features: await getFeatureCatalogForPlan(effectivePlan),
     usage,
   };
@@ -672,8 +812,9 @@ export async function listPayments(userId: string, limit = 20) {
   }
 }
 
-export function getPlans(): PlanDefinition[] {
-  return [PLAN_CATALOG.free, PLAN_CATALOG.starter, PLAN_CATALOG.pro];
+export async function getPlans(): Promise<PlanDefinition[]> {
+  const planCatalog = await resolvePlanCatalog();
+  return [planCatalog.free, planCatalog.starter, planCatalog.pro];
 }
 
 function hasPlanFeature(planId: PlanId, featureId: FeatureId): boolean {

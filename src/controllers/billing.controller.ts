@@ -13,6 +13,7 @@ import {
   processWebhookPayload,
   syncCheckoutForUser,
 } from "../services/billing.service";
+import { listRoadmapItems } from "../services/catalog.service";
 import { readTimezoneFromRequest } from "../utils/timezone";
 
 const checkoutSchema = z.object({
@@ -125,7 +126,11 @@ export async function createPortal(req: any, res: any) {
 }
 
 export async function getPlanCatalog(_req: any, res: any) {
-  return res.json(getPlans());
+  return res.json(await getPlans());
+}
+
+export async function getRoadmap(_req: any, res: any) {
+  return res.json(await listRoadmapItems(false));
 }
 
 export async function getFeatureCatalog(req: any, res: any) {

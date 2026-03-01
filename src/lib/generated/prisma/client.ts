@@ -97,3 +97,8 @@ export type PromptConfig = Prisma.PromptConfigModel
  * 
  */
 export type ModuleConfig = Prisma.ModuleConfigModel
+/**
+ * Model RoadmapItem
+ * 
+ */
+export type RoadmapItem = Prisma.RoadmapItemModel

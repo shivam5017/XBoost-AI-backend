@@ -4,10 +4,13 @@ import { requireAdmin } from "../middleware/admin";
 import {
   getAdminModuleConfigs,
   getAdminPromptConfigs,
+  getAdminRoadmap,
   getAdminTemplates,
+  removeAdminRoadmap,
   removeAdminTemplate,
   saveAdminModuleConfig,
   saveAdminPromptConfig,
+  saveAdminRoadmap,
   saveAdminTemplate,
 } from "../controllers/admin.controller";
 
@@ -23,5 +26,9 @@ router.put("/prompts/:key", saveAdminPromptConfig);
 
 router.get("/modules", getAdminModuleConfigs);
 router.put("/modules/:featureId", saveAdminModuleConfig);
+
+router.get("/roadmap", getAdminRoadmap);
+router.post("/roadmap", saveAdminRoadmap);
+router.delete("/roadmap/:key", removeAdminRoadmap);
 
 export default router;

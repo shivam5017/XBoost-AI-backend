@@ -62,7 +62,8 @@ export const ModelName = {
   Payment: 'Payment',
   PromptTemplate: 'PromptTemplate',
   PromptConfig: 'PromptConfig',
-  ModuleConfig: 'ModuleConfig'
+  ModuleConfig: 'ModuleConfig',
+  RoadmapItem: 'RoadmapItem'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -255,6 +256,22 @@ export const ModuleConfigScalarFieldEnum = {
 } as const
 
 export type ModuleConfigScalarFieldEnum = (typeof ModuleConfigScalarFieldEnum)[keyof typeof ModuleConfigScalarFieldEnum]
+
+
+export const RoadmapItemScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  name: 'name',
+  description: 'description',
+  eta: 'eta',
+  status: 'status',
+  isActive: 'isActive',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RoadmapItemScalarFieldEnum = (typeof RoadmapItemScalarFieldEnum)[keyof typeof RoadmapItemScalarFieldEnum]
 
 
 export const SortOrder = {

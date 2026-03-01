@@ -48,7 +48,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JsonNullValueFilter = exports.NullsOrder = exports.QueryMode = exports.NullableJsonNullValueInput = exports.SortOrder = exports.ModuleConfigScalarFieldEnum = exports.PromptConfigScalarFieldEnum = exports.PromptTemplateScalarFieldEnum = exports.PaymentScalarFieldEnum = exports.DailyUsageScalarFieldEnum = exports.SubscriptionScalarFieldEnum = exports.AIUsageScalarFieldEnum = exports.AnalyticsScalarFieldEnum = exports.StreakScalarFieldEnum = exports.DailyStatsScalarFieldEnum = exports.ReplyScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
+exports.JsonNullValueFilter = exports.NullsOrder = exports.QueryMode = exports.NullableJsonNullValueInput = exports.SortOrder = exports.RoadmapItemScalarFieldEnum = exports.ModuleConfigScalarFieldEnum = exports.PromptConfigScalarFieldEnum = exports.PromptTemplateScalarFieldEnum = exports.PaymentScalarFieldEnum = exports.DailyUsageScalarFieldEnum = exports.SubscriptionScalarFieldEnum = exports.AIUsageScalarFieldEnum = exports.AnalyticsScalarFieldEnum = exports.StreakScalarFieldEnum = exports.DailyStatsScalarFieldEnum = exports.ReplyScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/index-browser"));
 exports.Decimal = runtime.Decimal;
 exports.NullTypes = {
@@ -86,7 +86,8 @@ exports.ModelName = {
     Payment: 'Payment',
     PromptTemplate: 'PromptTemplate',
     PromptConfig: 'PromptConfig',
-    ModuleConfig: 'ModuleConfig'
+    ModuleConfig: 'ModuleConfig',
+    RoadmapItem: 'RoadmapItem'
 };
 /*
  * Enums
@@ -223,6 +224,18 @@ exports.ModuleConfigScalarFieldEnum = {
     promptHint: 'promptHint',
     inputHelp: 'inputHelp',
     examples: 'examples',
+    updatedAt: 'updatedAt'
+};
+exports.RoadmapItemScalarFieldEnum = {
+    id: 'id',
+    key: 'key',
+    name: 'name',
+    description: 'description',
+    eta: 'eta',
+    status: 'status',
+    isActive: 'isActive',
+    sortOrder: 'sortOrder',
+    createdAt: 'createdAt',
     updatedAt: 'updatedAt'
 };
 exports.SortOrder = {
