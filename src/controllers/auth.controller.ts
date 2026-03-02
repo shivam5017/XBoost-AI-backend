@@ -33,6 +33,7 @@ const saveApiKeySchema = z.object({
 const removeApiKeySchema = z.object({
   provider: z.enum(ALLOWED_AI_PROVIDERS).optional(),
 });
+const RUNTIME_ENABLED_PROVIDERS = new Set(["openai", "chatgpt", "google", "xai", "mistral"]);
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -179,10 +180,23 @@ export async function saveApiKey(
 
   const provider = parsed.data.provider || "openai";
   const apiKey = parsed.data.apiKey || parsed.data.openaiKey!;
+  if (!RUNTIME_ENABLED_PROVIDERS.has(provider)) {
+    res.status(400).json({
+      error: `${provider} is not enabled in this deployment yet. Please use OpenAI/ChatGPT, Google Gemini, xAI, or Mistral.`,
+    });
+    return;
+  }
   const current = await prisma.user.findUnique({
     where: { id: req.userId },
     select: { openaiKey: true },
   });
+  const existingProviders = listStoredProviders(current?.openaiKey);
+  if (existingProviders.length > 0) {
+    res.status(400).json({
+      error: "You already have an API key added. Remove the existing key before adding a new one.",
+    });
+    return;
+  }
 
   try {
     const encrypted = upsertProviderApiKey(current?.openaiKey, provider, apiKey);

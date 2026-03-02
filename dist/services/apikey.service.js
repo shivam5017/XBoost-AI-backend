@@ -8,6 +8,7 @@ exports.upsertProviderApiKey = upsertProviderApiKey;
 exports.removeProviderApiKey = removeProviderApiKey;
 exports.getProviderApiKey = getProviderApiKey;
 exports.listStoredProviders = listStoredProviders;
+exports.getPrimaryProviderApiKey = getPrimaryProviderApiKey;
 const crypto_1 = __importDefault(require("crypto"));
 exports.ALLOWED_AI_PROVIDERS = [
     "openai",
@@ -154,4 +155,14 @@ function listStoredProviders(existingRaw) {
         provider: provider,
         masked: `••••••••••••${String(value).slice(-4)}`,
     }));
+}
+function getPrimaryProviderApiKey(existingRaw) {
+    const store = parseStore(existingRaw);
+    for (const provider of exports.ALLOWED_AI_PROVIDERS) {
+        const apiKey = store.providers[provider];
+        if (apiKey) {
+            return { provider, apiKey };
+        }
+    }
+    return null;
 }

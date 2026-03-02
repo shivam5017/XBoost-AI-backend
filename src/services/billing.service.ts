@@ -582,7 +582,7 @@ function defaultBillingReturnUrl(): string | undefined {
   const app = normalizeBaseUrl(readEnv("APP_URL", "WEB_APP_URL", "NEXT_PUBLIC_APP_URL"));
   if (app) return `${app}/dashboard/billing?checkout=return`;
 
-  return "https://xboostai.netlify.app/dashboard/billing?checkout=return";
+  return "https://xboostai.in/dashboard/billing?checkout=return";
 }
 
 function readProductId(data: any): string | null {

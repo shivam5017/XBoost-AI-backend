@@ -61,16 +61,14 @@ const usage_service_1 = require("../services/usage.service");
 const timezone_1 = require("../utils/timezone");
 const apikey_service_1 = require("../services/apikey.service");
 const billing_service_1 = require("../services/billing.service");
-async function getUserApiKey(userId) {
+async function getUserApiAuth(userId) {
     const user = await db_1.prisma.user.findUnique({
         where: { id: userId },
         select: { openaiKey: true },
     });
     if (!user?.openaiKey)
         return null;
-    return ((0, apikey_service_1.getProviderApiKey)(user.openaiKey, "openai") ||
-        (0, apikey_service_1.getProviderApiKey)(user.openaiKey, "chatgpt") ||
-        null);
+    return (0, apikey_service_1.getPrimaryProviderApiKey)(user.openaiKey);
 }
 async function trackUsage(userId, endpoint, tokens) {
     await db_1.prisma.aIUsage.create({ data: { userId, endpoint, tokens } });
@@ -134,11 +132,11 @@ async function generateReply(req, res) {
         res.status(400).json({ error: 'tweetText required' });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
+    const userApi = await getUserApiAuth(req.userId);
     let reply;
     let tokens;
     try {
-        ({ reply, tokens } = await AIService.generateReply(tweetText, tone, userApiKey, wordCount, templateId, customPrompt));
+        ({ reply, tokens } = await AIService.generateReply(tweetText, tone, userApi, wordCount, templateId, customPrompt));
     }
     catch (err) {
         console.error('[/ai/reply] AIService error:', err.message);
@@ -186,11 +184,11 @@ async function analyzeTweet(req, res) {
         res.status(400).json({ error: 'tweetText required' });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
+    const userApi = await getUserApiAuth(req.userId);
     let analysis;
     let tokens;
     try {
-        ({ analysis, tokens } = await AIService.analyzeTweet(tweetText, userApiKey));
+        ({ analysis, tokens } = await AIService.analyzeTweet(tweetText, userApi));
     }
     catch (err) {
         console.error('[/ai/analyze] AIService error:', err.message);
@@ -210,11 +208,11 @@ async function createTweet(req, res) {
         res.status(400).json({ error: 'topic required' });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
+    const userApi = await getUserApiAuth(req.userId);
     let tweet;
     let tokens;
     try {
-        ({ tweet, tokens } = await AIService.createTweet(topic, tone, userApiKey, wordCount, templateId, customPrompt));
+        ({ tweet, tokens } = await AIService.createTweet(topic, tone, userApi, wordCount, templateId, customPrompt));
     }
     catch (err) {
         console.error('[/ai/create] AIService error:', err.message);
@@ -262,11 +260,11 @@ async function rewriteTweet(req, res) {
         res.status(400).json({ error: 'draftText required' });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
+    const userApi = await getUserApiAuth(req.userId);
     let rewrite;
     let tokens;
     try {
-        ({ rewrite, tokens } = await AIService.rewriteTweet(draftText, tone, userApiKey, wordCount, templateId, customPrompt));
+        ({ rewrite, tokens } = await AIService.rewriteTweet(draftText, tone, userApi, wordCount, templateId, customPrompt));
     }
     catch (err) {
         console.error('[/ai/rewrite] AIService error:', err.message);
@@ -321,9 +319,9 @@ async function viralHookIntel(req, res) {
         res.status(400).json({ error: "niche required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
+    const userApi = await getUserApiAuth(req.userId);
     const posts = Array.isArray(samplePosts) ? samplePosts.slice(0, 20).map(String) : [];
-    const { analysis, tokens } = await AIService.viralHookIntelligence(niche.trim(), posts, userApiKey);
+    const { analysis, tokens } = await AIService.viralHookIntelligence(niche.trim(), posts, userApi);
     await trackUsage(req.userId, "/ai/viral-hook-intel", tokens);
     res.json(analysis);
 }
@@ -335,9 +333,9 @@ async function preLaunchOptimize(req, res) {
         res.status(400).json({ error: "draft required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
+    const userApi = await getUserApiAuth(req.userId);
     const bestHours = await bestPostingHoursForUser(req.userId);
-    const { analysis, tokens } = await AIService.preLaunchOptimizer(String(draft), String(niche || "general growth"), bestHours, userApiKey);
+    const { analysis, tokens } = await AIService.preLaunchOptimizer(String(draft), String(niche || "general growth"), bestHours, userApi);
     await trackUsage(req.userId, "/ai/prelaunch-optimize", tokens);
     res.json(analysis);
 }
@@ -349,8 +347,8 @@ async function viralScore(req, res) {
         res.status(400).json({ error: "draft required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
-    const { analysis, tokens } = await AIService.viralScorePredictor(String(draft), String(niche || "general growth"), userApiKey);
+    const userApi = await getUserApiAuth(req.userId);
+    const { analysis, tokens } = await AIService.viralScorePredictor(String(draft), String(niche || "general growth"), userApi);
     await trackUsage(req.userId, "/ai/viral-score", tokens);
     res.json(analysis);
 }
@@ -362,9 +360,9 @@ async function bestTimePost(req, res) {
         res.status(400).json({ error: "niche required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
+    const userApi = await getUserApiAuth(req.userId);
     const bestHours = await bestPostingHoursForUser(req.userId);
-    const { analysis, tokens } = await AIService.bestTimeToPost(String(niche), bestHours, userApiKey);
+    const { analysis, tokens } = await AIService.bestTimeToPost(String(niche), bestHours, userApi);
     await trackUsage(req.userId, "/ai/best-time-post", tokens);
     res.json(analysis);
 }
@@ -376,9 +374,9 @@ async function contentPredict(req, res) {
         res.status(400).json({ error: "draft required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
+    const userApi = await getUserApiAuth(req.userId);
     const bestHours = await bestPostingHoursForUser(req.userId);
-    const { analysis, tokens } = await AIService.contentPerformancePrediction(String(draft), String(niche || "general growth"), bestHours, userApiKey);
+    const { analysis, tokens } = await AIService.contentPerformancePrediction(String(draft), String(niche || "general growth"), bestHours, userApi);
     await trackUsage(req.userId, "/ai/content-predict", tokens);
     res.json(analysis);
 }
@@ -390,8 +388,8 @@ async function trendRadar(req, res) {
         res.status(400).json({ error: "niche required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
-    const { analysis, tokens } = await AIService.nicheTrendRadar(String(niche), userApiKey);
+    const userApi = await getUserApiAuth(req.userId);
+    const { analysis, tokens } = await AIService.nicheTrendRadar(String(niche), userApi);
     await trackUsage(req.userId, "/ai/trend-radar", tokens);
     res.json(analysis);
 }
@@ -403,8 +401,8 @@ async function growthStrategist(req, res) {
         res.status(400).json({ error: "niche required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
-    const { analysis, tokens } = await AIService.growthStrategistMode(String(niche), String(goals || "Audience growth"), userApiKey);
+    const userApi = await getUserApiAuth(req.userId);
+    const { analysis, tokens } = await AIService.growthStrategistMode(String(niche), String(goals || "Audience growth"), userApi);
     await trackUsage(req.userId, "/ai/growth-strategist", tokens);
     res.json(analysis);
 }
@@ -416,9 +414,9 @@ async function brandAnalyzer(req, res) {
         res.status(400).json({ error: "profile required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
+    const userApi = await getUserApiAuth(req.userId);
     const list = Array.isArray(tweets) ? tweets.slice(0, 20).map(String) : [];
-    const { analysis, tokens } = await AIService.personalBrandAnalyzer(String(profile), list, userApiKey);
+    const { analysis, tokens } = await AIService.personalBrandAnalyzer(String(profile), list, userApi);
     await trackUsage(req.userId, "/ai/brand-analyzer", tokens);
     res.json(analysis);
 }
@@ -430,8 +428,8 @@ async function threadWriterPro(req, res) {
         res.status(400).json({ error: "topic required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
-    const { analysis, tokens } = await AIService.threadWriterPro(String(topic), String(objective || "Engagement + conversion"), userApiKey);
+    const userApi = await getUserApiAuth(req.userId);
+    const { analysis, tokens } = await AIService.threadWriterPro(String(topic), String(objective || "Engagement + conversion"), userApi);
     await trackUsage(req.userId, "/ai/thread-pro", tokens);
     res.json(analysis);
 }
@@ -443,8 +441,8 @@ async function leadMagnet(req, res) {
         res.status(400).json({ error: "content required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
-    const { analysis, tokens } = await AIService.leadMagnetGenerator(String(content), String(audience || "creators"), userApiKey);
+    const userApi = await getUserApiAuth(req.userId);
+    const { analysis, tokens } = await AIService.leadMagnetGenerator(String(content), String(audience || "creators"), userApi);
     await trackUsage(req.userId, "/ai/lead-magnet", tokens);
     res.json(analysis);
 }
@@ -456,8 +454,8 @@ async function audiencePsychology(req, res) {
         res.status(400).json({ error: "niche required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
-    const { analysis, tokens } = await AIService.audiencePsychologyInsights(String(niche), String(audience || "creators on X"), userApiKey);
+    const userApi = await getUserApiAuth(req.userId);
+    const { analysis, tokens } = await AIService.audiencePsychologyInsights(String(niche), String(audience || "creators on X"), userApi);
     await trackUsage(req.userId, "/ai/audience-psychology", tokens);
     res.json(analysis);
 }
@@ -469,8 +467,8 @@ async function repurposeContent(req, res) {
         res.status(400).json({ error: "source required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
-    const { analysis, tokens } = await AIService.repurposingEngine(String(source), userApiKey);
+    const userApi = await getUserApiAuth(req.userId);
+    const { analysis, tokens } = await AIService.repurposingEngine(String(source), userApi);
     await trackUsage(req.userId, "/ai/repurpose", tokens);
     res.json(analysis);
 }
@@ -482,8 +480,8 @@ async function monetizationToolkit(req, res) {
         res.status(400).json({ error: "niche required" });
         return;
     }
-    const userApiKey = await getUserApiKey(req.userId);
-    const { analysis, tokens } = await AIService.monetizationToolkit(String(niche), String(audience || "creator audience"), userApiKey);
+    const userApi = await getUserApiAuth(req.userId);
+    const { analysis, tokens } = await AIService.monetizationToolkit(String(niche), String(audience || "creator audience"), userApi);
     await trackUsage(req.userId, "/ai/monetization-toolkit", tokens);
     res.json(analysis);
 }

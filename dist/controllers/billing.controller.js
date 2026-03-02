@@ -48,7 +48,7 @@ async function createCheckout(req, res) {
         const appUrl = String(process.env.APP_URL || process.env.WEB_APP_URL || "").trim();
         const base = (origin && /^https?:\/\//i.test(origin) ? origin : "") ||
             (appUrl && /^https?:\/\//i.test(appUrl) ? appUrl : "") ||
-            "https://xboostai.netlify.app";
+            "https://xboostai.in";
         const successUrl = parsed.data.successUrl || `${base.replace(/\/+$/, "")}/dashboard/billing?checkout=success`;
         const cancelUrl = parsed.data.cancelUrl || `${base.replace(/\/+$/, "")}/dashboard/billing?checkout=cancel`;
         const checkout = await (0, billing_service_1.createCheckoutSession)({

@@ -5,20 +5,21 @@ import * as AIService from '../services/ai.service';
 import { listTemplates } from "../services/catalog.service";
 import { consumeDailyReplyQuota, consumeDailyTweetQuota } from '../services/usage.service';
 import { readTimezoneFromRequest, startOfDayUtcForTimezone } from '../utils/timezone';
-import { getProviderApiKey } from "../services/apikey.service";
+import { AIProvider, getPrimaryProviderApiKey } from "../services/apikey.service";
 import { hasFeatureAccess, FeatureId } from "../services/billing.service";
 
-async function getUserApiKey(userId: string): Promise<string | null> {
+type UserAIAuth = {
+  provider: AIProvider;
+  apiKey: string;
+};
+
+async function getUserApiAuth(userId: string): Promise<UserAIAuth | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { openaiKey: true },
   });
   if (!user?.openaiKey) return null;
-  return (
-    getProviderApiKey(user.openaiKey, "openai") ||
-    getProviderApiKey(user.openaiKey, "chatgpt") ||
-    null
-  );
+  return getPrimaryProviderApiKey(user.openaiKey);
 }
 
 async function trackUsage(userId: string, endpoint: string, tokens: number): Promise<void> {
@@ -94,12 +95,12 @@ export async function generateReply(req: AuthRequest, res: Response): Promise<vo
   const { tweetText, tone = 'smart', tweetId, wordCount = 50, templateId, customPrompt } = req.body;
   if (!tweetText) { res.status(400).json({ error: 'tweetText required' }); return; }
 
-  const userApiKey = await getUserApiKey(req.userId!);
+  const userApi = await getUserApiAuth(req.userId!);
 
   let reply: string;
   let tokens: number;
   try {
-    ({ reply, tokens } = await AIService.generateReply(tweetText, tone, userApiKey, wordCount, templateId, customPrompt));
+    ({ reply, tokens } = await AIService.generateReply(tweetText, tone, userApi, wordCount, templateId, customPrompt));
   } catch (err: any) {
     console.error('[/ai/reply] AIService error:', err.message);
     res.status(400).json({ error: err.message || 'Failed to generate reply' });
@@ -147,12 +148,12 @@ export async function analyzeTweet(req: AuthRequest, res: Response): Promise<voi
   const { tweetText } = req.body;
   if (!tweetText) { res.status(400).json({ error: 'tweetText required' }); return; }
 
-  const userApiKey = await getUserApiKey(req.userId!);
+  const userApi = await getUserApiAuth(req.userId!);
 
   let analysis: object;
   let tokens: number;
   try {
-    ({ analysis, tokens } = await AIService.analyzeTweet(tweetText, userApiKey));
+    ({ analysis, tokens } = await AIService.analyzeTweet(tweetText, userApi));
   } catch (err: any) {
     console.error('[/ai/analyze] AIService error:', err.message);
     res.status(400).json({ error: err.message || 'Failed to analyze tweet' });
@@ -172,12 +173,12 @@ export async function createTweet(req: AuthRequest, res: Response): Promise<void
   const { topic, tone = 'smart', wordCount = 50, templateId, customPrompt } = req.body;
   if (!topic) { res.status(400).json({ error: 'topic required' }); return; }
 
-  const userApiKey = await getUserApiKey(req.userId!);
+  const userApi = await getUserApiAuth(req.userId!);
 
   let tweet: string;
   let tokens: number;
   try {
-    ({ tweet, tokens } = await AIService.createTweet(topic, tone, userApiKey, wordCount, templateId, customPrompt));
+    ({ tweet, tokens } = await AIService.createTweet(topic, tone, userApi, wordCount, templateId, customPrompt));
   } catch (err: any) {
     console.error('[/ai/create] AIService error:', err.message);
     res.status(400).json({ error: err.message || 'Failed to create tweet' });
@@ -225,12 +226,12 @@ export async function rewriteTweet(req: AuthRequest, res: Response): Promise<voi
   const { draftText, tone = 'smart', wordCount = 50, templateId, customPrompt } = req.body;
   if (!draftText) { res.status(400).json({ error: 'draftText required' }); return; }
 
-  const userApiKey = await getUserApiKey(req.userId!);
+  const userApi = await getUserApiAuth(req.userId!);
 
   let rewrite: string;
   let tokens: number;
   try {
-    ({ rewrite, tokens } = await AIService.rewriteTweet(draftText, tone, userApiKey, wordCount, templateId, customPrompt));
+    ({ rewrite, tokens } = await AIService.rewriteTweet(draftText, tone, userApi, wordCount, templateId, customPrompt));
   } catch (err: any) {
     console.error('[/ai/rewrite] AIService error:', err.message);
     res.status(400).json({ error: err.message || 'Failed to rewrite tweet' });
@@ -289,12 +290,12 @@ export async function viralHookIntel(req: AuthRequest, res: Response): Promise<v
     return;
   }
 
-  const userApiKey = await getUserApiKey(req.userId!);
+  const userApi = await getUserApiAuth(req.userId!);
   const posts = Array.isArray(samplePosts) ? samplePosts.slice(0, 20).map(String) : [];
   const { analysis, tokens } = await AIService.viralHookIntelligence(
     niche.trim(),
     posts,
-    userApiKey,
+    userApi,
   );
   await trackUsage(req.userId!, "/ai/viral-hook-intel", tokens);
   res.json(analysis);
@@ -309,13 +310,13 @@ export async function preLaunchOptimize(req: AuthRequest, res: Response): Promis
     return;
   }
 
-  const userApiKey = await getUserApiKey(req.userId!);
+  const userApi = await getUserApiAuth(req.userId!);
   const bestHours = await bestPostingHoursForUser(req.userId!);
   const { analysis, tokens } = await AIService.preLaunchOptimizer(
     String(draft),
     String(niche || "general growth"),
     bestHours,
-    userApiKey,
+    userApi,
   );
   await trackUsage(req.userId!, "/ai/prelaunch-optimize", tokens);
   res.json(analysis);
@@ -328,8 +329,8 @@ export async function viralScore(req: AuthRequest, res: Response): Promise<void>
     res.status(400).json({ error: "draft required" });
     return;
   }
-  const userApiKey = await getUserApiKey(req.userId!);
-  const { analysis, tokens } = await AIService.viralScorePredictor(String(draft), String(niche || "general growth"), userApiKey);
+  const userApi = await getUserApiAuth(req.userId!);
+  const { analysis, tokens } = await AIService.viralScorePredictor(String(draft), String(niche || "general growth"), userApi);
   await trackUsage(req.userId!, "/ai/viral-score", tokens);
   res.json(analysis);
 }
@@ -341,9 +342,9 @@ export async function bestTimePost(req: AuthRequest, res: Response): Promise<voi
     res.status(400).json({ error: "niche required" });
     return;
   }
-  const userApiKey = await getUserApiKey(req.userId!);
+  const userApi = await getUserApiAuth(req.userId!);
   const bestHours = await bestPostingHoursForUser(req.userId!);
-  const { analysis, tokens } = await AIService.bestTimeToPost(String(niche), bestHours, userApiKey);
+  const { analysis, tokens } = await AIService.bestTimeToPost(String(niche), bestHours, userApi);
   await trackUsage(req.userId!, "/ai/best-time-post", tokens);
   res.json(analysis);
 }
@@ -355,13 +356,13 @@ export async function contentPredict(req: AuthRequest, res: Response): Promise<v
     res.status(400).json({ error: "draft required" });
     return;
   }
-  const userApiKey = await getUserApiKey(req.userId!);
+  const userApi = await getUserApiAuth(req.userId!);
   const bestHours = await bestPostingHoursForUser(req.userId!);
   const { analysis, tokens } = await AIService.contentPerformancePrediction(
     String(draft),
     String(niche || "general growth"),
     bestHours,
-    userApiKey,
+    userApi,
   );
   await trackUsage(req.userId!, "/ai/content-predict", tokens);
   res.json(analysis);
@@ -374,8 +375,8 @@ export async function trendRadar(req: AuthRequest, res: Response): Promise<void>
     res.status(400).json({ error: "niche required" });
     return;
   }
-  const userApiKey = await getUserApiKey(req.userId!);
-  const { analysis, tokens } = await AIService.nicheTrendRadar(String(niche), userApiKey);
+  const userApi = await getUserApiAuth(req.userId!);
+  const { analysis, tokens } = await AIService.nicheTrendRadar(String(niche), userApi);
   await trackUsage(req.userId!, "/ai/trend-radar", tokens);
   res.json(analysis);
 }
@@ -387,8 +388,8 @@ export async function growthStrategist(req: AuthRequest, res: Response): Promise
     res.status(400).json({ error: "niche required" });
     return;
   }
-  const userApiKey = await getUserApiKey(req.userId!);
-  const { analysis, tokens } = await AIService.growthStrategistMode(String(niche), String(goals || "Audience growth"), userApiKey);
+  const userApi = await getUserApiAuth(req.userId!);
+  const { analysis, tokens } = await AIService.growthStrategistMode(String(niche), String(goals || "Audience growth"), userApi);
   await trackUsage(req.userId!, "/ai/growth-strategist", tokens);
   res.json(analysis);
 }
@@ -400,9 +401,9 @@ export async function brandAnalyzer(req: AuthRequest, res: Response): Promise<vo
     res.status(400).json({ error: "profile required" });
     return;
   }
-  const userApiKey = await getUserApiKey(req.userId!);
+  const userApi = await getUserApiAuth(req.userId!);
   const list = Array.isArray(tweets) ? tweets.slice(0, 20).map(String) : [];
-  const { analysis, tokens } = await AIService.personalBrandAnalyzer(String(profile), list, userApiKey);
+  const { analysis, tokens } = await AIService.personalBrandAnalyzer(String(profile), list, userApi);
   await trackUsage(req.userId!, "/ai/brand-analyzer", tokens);
   res.json(analysis);
 }
@@ -414,8 +415,8 @@ export async function threadWriterPro(req: AuthRequest, res: Response): Promise<
     res.status(400).json({ error: "topic required" });
     return;
   }
-  const userApiKey = await getUserApiKey(req.userId!);
-  const { analysis, tokens } = await AIService.threadWriterPro(String(topic), String(objective || "Engagement + conversion"), userApiKey);
+  const userApi = await getUserApiAuth(req.userId!);
+  const { analysis, tokens } = await AIService.threadWriterPro(String(topic), String(objective || "Engagement + conversion"), userApi);
   await trackUsage(req.userId!, "/ai/thread-pro", tokens);
   res.json(analysis);
 }
@@ -427,8 +428,8 @@ export async function leadMagnet(req: AuthRequest, res: Response): Promise<void>
     res.status(400).json({ error: "content required" });
     return;
   }
-  const userApiKey = await getUserApiKey(req.userId!);
-  const { analysis, tokens } = await AIService.leadMagnetGenerator(String(content), String(audience || "creators"), userApiKey);
+  const userApi = await getUserApiAuth(req.userId!);
+  const { analysis, tokens } = await AIService.leadMagnetGenerator(String(content), String(audience || "creators"), userApi);
   await trackUsage(req.userId!, "/ai/lead-magnet", tokens);
   res.json(analysis);
 }
@@ -440,8 +441,8 @@ export async function audiencePsychology(req: AuthRequest, res: Response): Promi
     res.status(400).json({ error: "niche required" });
     return;
   }
-  const userApiKey = await getUserApiKey(req.userId!);
-  const { analysis, tokens } = await AIService.audiencePsychologyInsights(String(niche), String(audience || "creators on X"), userApiKey);
+  const userApi = await getUserApiAuth(req.userId!);
+  const { analysis, tokens } = await AIService.audiencePsychologyInsights(String(niche), String(audience || "creators on X"), userApi);
   await trackUsage(req.userId!, "/ai/audience-psychology", tokens);
   res.json(analysis);
 }
@@ -453,8 +454,8 @@ export async function repurposeContent(req: AuthRequest, res: Response): Promise
     res.status(400).json({ error: "source required" });
     return;
   }
-  const userApiKey = await getUserApiKey(req.userId!);
-  const { analysis, tokens } = await AIService.repurposingEngine(String(source), userApiKey);
+  const userApi = await getUserApiAuth(req.userId!);
+  const { analysis, tokens } = await AIService.repurposingEngine(String(source), userApi);
   await trackUsage(req.userId!, "/ai/repurpose", tokens);
   res.json(analysis);
 }
@@ -466,8 +467,8 @@ export async function monetizationToolkit(req: AuthRequest, res: Response): Prom
     res.status(400).json({ error: "niche required" });
     return;
   }
-  const userApiKey = await getUserApiKey(req.userId!);
-  const { analysis, tokens } = await AIService.monetizationToolkit(String(niche), String(audience || "creator audience"), userApiKey);
+  const userApi = await getUserApiAuth(req.userId!);
+  const { analysis, tokens } = await AIService.monetizationToolkit(String(niche), String(audience || "creator audience"), userApi);
   await trackUsage(req.userId!, "/ai/monetization-toolkit", tokens);
   res.json(analysis);
 }

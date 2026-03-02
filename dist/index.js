@@ -23,7 +23,6 @@ app.set("trust proxy", 1);
 const baseAllowedOrigins = [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://xboostai.netlify.app",
     "https://xboostai.in"
 ];
 const envAllowedOrigins = (process.env.CORS_ORIGINS || "")
@@ -41,8 +40,6 @@ function isOriginAllowed(origin) {
     if (allowedOrigins.has(origin))
         return true;
     if (origin.startsWith("chrome-extension://"))
-        return true;
-    if (/^https:\/\/([a-z0-9-]+\.)*netlify\.app$/i.test(origin))
         return true;
     if (/^https:\/\/(www\.)?x\.com$/i.test(origin))
         return true;

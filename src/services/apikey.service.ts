@@ -181,3 +181,15 @@ export function listStoredProviders(
     }));
 }
 
+export function getPrimaryProviderApiKey(
+  existingRaw: string | null | undefined,
+): { provider: AIProvider; apiKey: string } | null {
+  const store = parseStore(existingRaw);
+  for (const provider of ALLOWED_AI_PROVIDERS) {
+    const apiKey = store.providers[provider];
+    if (apiKey) {
+      return { provider, apiKey };
+    }
+  }
+  return null;
+}

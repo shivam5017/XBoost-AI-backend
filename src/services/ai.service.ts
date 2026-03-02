@@ -4,6 +4,7 @@ import {
   getDefaultPromptConfigMap,
   getPromptConfigMap,
 } from "./catalog.service";
+import { AIProvider } from "./apikey.service";
 
 const DEFAULT_TONE_PROMPTS: Record<string, string> = {
   smart:         'Be insightful, add a unique perspective, and provide value. Sound knowledgeable but approachable.',
@@ -15,11 +16,90 @@ const DEFAULT_TONE_PROMPTS: Record<string, string> = {
   educator:      'Break down complex ideas simply. Use analogies. Teach something genuinely useful.',
 };
 
+type AIAuthInput =
+  | string
+  | null
+  | undefined
+  | {
+      provider?: AIProvider;
+      apiKey: string;
+    };
+
+function resolveAuth(authInput?: AIAuthInput): {
+  provider: AIProvider;
+  apiKey: string;
+} {
+  if (typeof authInput === "string" && authInput.trim()) {
+    return { provider: "openai", apiKey: authInput.trim() };
+  }
+
+  if (authInput && typeof authInput === "object" && "apiKey" in authInput) {
+    return {
+      provider: authInput.provider || "openai",
+      apiKey: String(authInput.apiKey || "").trim(),
+    };
+  }
+
+  const envKey = String(process.env.OPENAI_API_KEY || "").trim();
+  if (envKey) {
+    return { provider: "openai", apiKey: envKey };
+  }
+
+  throw new Error("No AI API key available. Please add your API key in Settings.");
+}
+
+function resolveModel(provider: AIProvider): string {
+  switch (provider) {
+    case "xai":
+      return "grok-2-latest";
+    case "google":
+      return "gemini-2.0-flash";
+    case "mistral":
+      return "mistral-small-latest";
+    case "openai":
+    case "chatgpt":
+      return "gpt-4o-mini";
+    case "anthropic":
+      throw new Error("Anthropic key detected, but Anthropic generation is not enabled in this deployment yet.");
+    case "cohere":
+      throw new Error("Cohere key detected, but Cohere generation is not enabled in this deployment yet.");
+    default:
+      return "gpt-4o-mini";
+  }
+}
+
 // ── Helper ────────────────────────────────────────────────────────────────────
-function getClient(userApiKey?: string | null): OpenAI {
-  const key = userApiKey || process.env.OPENAI_API_KEY;
-  if (!key) throw new Error('No OpenAI API key available. Please add your API key in Settings.');
-  return new OpenAI({ apiKey: key });
+function getClient(authInput?: AIAuthInput): { client: OpenAI; provider: AIProvider; model: string } {
+  const auth = resolveAuth(authInput);
+  const provider = auth.provider || "openai";
+
+  const model = resolveModel(provider);
+  if (provider === "xai") {
+    return {
+      client: new OpenAI({ apiKey: auth.apiKey, baseURL: "https://api.x.ai/v1" }),
+      provider,
+      model,
+    };
+  }
+  if (provider === "google") {
+    return {
+      client: new OpenAI({
+        apiKey: auth.apiKey,
+        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+      }),
+      provider,
+      model,
+    };
+  }
+  if (provider === "mistral") {
+    return {
+      client: new OpenAI({ apiKey: auth.apiKey, baseURL: "https://api.mistral.ai/v1" }),
+      provider,
+      model,
+    };
+  }
+
+  return { client: new OpenAI({ apiKey: auth.apiKey }), provider, model };
 }
 
 function wordCountToTokens(wordCount: number): number {
@@ -77,10 +157,10 @@ export async function getToneCatalog(): Promise<Record<string, string>> {
 
 async function resolveTemplateInstruction(
   templateId: string | undefined,
-  target: "tweet" | "reply",
+  _target: "tweet" | "reply",
 ): Promise<string> {
   if (!templateId) return "";
-  const map = await getActiveTemplateMap(target);
+  const map = await getActiveTemplateMap("all");
   const match = map[templateId];
   if (!match) return "";
   return `\nTemplate: ${match.instruction}`;
@@ -110,12 +190,12 @@ Output constraints:
 export async function generateReply(
   tweetText: string,
   tone: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
   wordCount = 50,
   templateId?: string,
   userPrompt?: string,
 ): Promise<{ reply: string; tokens: number }> {
-  const openai = getClient(userApiKey);
+  const { client: openai, model } = getClient(userApi);
   const toneMap = await getToneCatalog();
   const toneInstruction = toneMap[tone] || toneMap.smart || DEFAULT_TONE_PROMPTS.smart;
   const lengthInstruction = buildLengthInstruction(wordCount);
@@ -129,7 +209,7 @@ export async function generateReply(
     `You are an elite X growth strategist. Generate ONE reply that directly addresses the source tweet and adds a fresh angle, useful insight, or respectful disagreement.`;
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model,
     max_tokens: wordCountToTokens(wordCount),
     temperature: 0.92,
     frequency_penalty: 0.35,
@@ -165,12 +245,12 @@ Context rules:
 // ── analyzeTweet ──────────────────────────────────────────────────────────────
 export async function analyzeTweet(
   tweetText: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: object; tokens: number }> {
-  const openai = getClient(userApiKey);
+  const { client: openai, model } = getClient(userApi);
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model,
     max_tokens: 400,
     response_format: { type: 'json_object' },
     messages: [
@@ -200,12 +280,12 @@ export async function analyzeTweet(
 export async function createTweet(
   topic: string,
   tone: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
   wordCount = 50,
   templateId?: string,
   userPrompt?: string,
 ): Promise<{ tweet: string; tokens: number }> {
-  const openai = getClient(userApiKey);
+  const { client: openai, model } = getClient(userApi);
   const toneMap = await getToneCatalog();
   const toneInstruction = toneMap[tone] || toneMap.smart || DEFAULT_TONE_PROMPTS.smart;
   const lengthInstruction = buildLengthInstruction(wordCount);
@@ -218,7 +298,7 @@ export async function createTweet(
   const objective = config.create_objective || "Create one high-performing original tweet.";
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model,
     max_tokens: wordCountToTokens(wordCount),
     temperature: 0.95,
     frequency_penalty: 0.4,
@@ -252,12 +332,12 @@ Content rules:
 export async function rewriteTweet(
   draftText: string,
   tone: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
   wordCount = 50,
   templateId?: string,
   userPrompt?: string,
 ): Promise<{ rewrite: string; tokens: number }> {
-  const openai = getClient(userApiKey);
+  const { client: openai, model } = getClient(userApi);
   const toneMap = await getToneCatalog();
   const toneInstruction = toneMap[tone] || toneMap.smart || DEFAULT_TONE_PROMPTS.smart;
   const lengthInstruction = buildLengthInstruction(wordCount);
@@ -271,7 +351,7 @@ export async function rewriteTweet(
     "Rewrite the draft to be materially stronger while preserving original meaning.";
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model,
     max_tokens: wordCountToTokens(wordCount),
     temperature: 0.88,
     frequency_penalty: 0.28,
@@ -335,16 +415,16 @@ async function jsonModuleCall<T>(
   systemPrompt: string,
   userPrompt: string,
   fallback: T,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ data: T; tokens: number }> {
-  if (!userApiKey && !process.env.OPENAI_API_KEY) {
+  if (!userApi && !process.env.OPENAI_API_KEY) {
     return { data: fallback, tokens: 0 };
   }
 
   try {
-    const openai = getClient(userApiKey);
+    const { client: openai, model } = getClient(userApi);
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model,
       max_tokens: 800,
       response_format: { type: "json_object" },
       messages: [
@@ -366,7 +446,7 @@ async function jsonModuleCall<T>(
 export async function viralHookIntelligence(
   niche: string,
   samplePosts: string[],
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const corpus = samplePosts.join(" ");
   const keywords = extractKeywords(`${niche} ${corpus}`, 10);
@@ -407,7 +487,7 @@ ${samplePosts.map((p, i) => `${i + 1}. ${p}`).join("\n")}`;
 Give high-signal actionable output.`,
     prompt,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({
     analysis: { ...fallback, ...r.data, hookScore: clampScore(Number((r.data as any)?.hookScore ?? fallback.hookScore)) },
     tokens: r.tokens,
@@ -418,7 +498,7 @@ export async function preLaunchOptimizer(
   draft: string,
   niche: string,
   historicalBestHours: number[],
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const hookWords = extractKeywords(draft, 5);
   const score = clampScore(50 + Math.min(draft.length / 6, 30) + hookWords.length * 3);
@@ -458,7 +538,7 @@ Best posting windows (local user time): ${bestTimes.join(", ")}`;
 Be concise and tactical.`,
     prompt,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({
     analysis: {
       ...fallback,
@@ -471,7 +551,7 @@ Be concise and tactical.`,
 
 export async function nicheTrendRadar(
   niche: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const keywords = extractKeywords(niche, 6);
   const fallback = {
@@ -496,7 +576,7 @@ export async function nicheTrendRadar(
 }`,
     `Niche: ${niche}`,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({
     analysis: {
       ...fallback,
@@ -514,7 +594,7 @@ export async function nicheTrendRadar(
 export async function growthStrategistMode(
   niche: string,
   goals: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const fallback = {
     roadmap30Days: [
@@ -547,14 +627,14 @@ export async function growthStrategistMode(
     `Niche: ${niche}
 Primary goals: ${goals}`,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
 }
 
 export async function personalBrandAnalyzer(
   profile: string,
   tweets: string[],
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const fallback = {
     voiceSummary: "Educational with occasional contrarian hooks; tighten positioning language.",
@@ -581,7 +661,7 @@ ${profile}
 Recent tweets:
 ${tweets.map((t, i) => `${i + 1}. ${t}`).join("\n")}`,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({
     analysis: {
       ...fallback,
@@ -595,7 +675,7 @@ ${tweets.map((t, i) => `${i + 1}. ${t}`).join("\n")}`,
 export async function threadWriterPro(
   topic: string,
   objective: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const fallback = {
     title: `${topic}: Practical thread`,
@@ -626,14 +706,14 @@ Output a practical high-retention thread.`,
     `Topic: ${topic}
 Objective: ${objective}`,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
 }
 
 export async function leadMagnetGenerator(
   content: string,
   audience: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const fallback = {
     pdfOutline: ["Problem framing", "3-step system", "Checklist", "Next action"],
@@ -655,14 +735,14 @@ ${content}
 
 Target audience: ${audience}`,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
 }
 
 export async function audiencePsychologyInsights(
   niche: string,
   audience: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const fallback = {
     engagementTriggers: ["Specific transformation claims", "Clear before/after contrast"],
@@ -684,13 +764,13 @@ export async function audiencePsychologyInsights(
     `Niche: ${niche}
 Audience: ${audience}`,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
 }
 
 export async function repurposingEngine(
   source: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const fallback = {
     linkedinPost: source,
@@ -710,14 +790,14 @@ export async function repurposingEngine(
     `Repurpose this source content:
 ${source}`,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
 }
 
 export async function monetizationToolkit(
   niche: string,
   audience: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const fallback = {
     productIdeas: ["Template pack", "Audit service", "Mini cohort"],
@@ -739,14 +819,14 @@ export async function monetizationToolkit(
     `Niche: ${niche}
 Audience: ${audience}`,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
 }
 
 export async function viralScorePredictor(
   draft: string,
   niche: string,
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const hookStrength = Math.min(25, Math.round(draft.slice(0, 80).split(" ").length * 1.8));
   const specificity = Math.min(25, extractKeywords(draft, 8).length * 3);
@@ -790,7 +870,7 @@ export async function viralScorePredictor(
 Draft:
 ${draft}`,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({
     analysis: {
       ...fallback,
@@ -804,7 +884,7 @@ ${draft}`,
 export async function bestTimeToPost(
   niche: string,
   historicalBestHours: number[],
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
   const topHours = (historicalBestHours.length ? historicalBestHours : [9, 13, 18]).slice(0, 5);
   const fallback = {
@@ -832,7 +912,7 @@ export async function bestTimeToPost(
     `Niche: ${niche}
 Historical top hours: ${topHours.join(", ")}`,
     fallback,
-    userApiKey,
+    userApi,
   ).then((r) => ({ analysis: { ...fallback, ...r.data }, tokens: r.tokens }));
 }
 
@@ -840,9 +920,9 @@ export async function contentPerformancePrediction(
   draft: string,
   niche: string,
   historicalBestHours: number[],
-  userApiKey?: string | null,
+  userApi?: AIAuthInput,
 ): Promise<{ analysis: any; tokens: number }> {
-  const pre = await preLaunchOptimizer(draft, niche, historicalBestHours, userApiKey);
+  const pre = await preLaunchOptimizer(draft, niche, historicalBestHours, userApi);
   const score = clampScore(Number(pre.analysis?.viralPotential ?? 60));
   return {
     analysis: {
