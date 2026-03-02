@@ -6,6 +6,7 @@ import {
   createCheckoutSession,
   createCustomerPortalSession,
   getFeatureCatalogForUser,
+  getFeatureCatalogForPlan,
   getPlans,
   getBillingSnapshot,
   listPayments,
@@ -131,6 +132,10 @@ export async function getPlanCatalog(_req: any, res: any) {
 
 export async function getPublicPlanCatalog(_req: any, res: any) {
   return res.json(await getPlans());
+}
+
+export async function getPublicFeatureCatalog(_req: any, res: any) {
+  return res.json(await getFeatureCatalogForPlan(PlanId.pro));
 }
 
 export async function getRoadmap(_req: any, res: any) {

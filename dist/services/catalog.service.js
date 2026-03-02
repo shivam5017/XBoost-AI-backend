@@ -15,6 +15,7 @@ exports.upsertRoadmapItem = upsertRoadmapItem;
 exports.deleteRoadmapItem = deleteRoadmapItem;
 exports.getDefaultPromptConfigMap = getDefaultPromptConfigMap;
 const db_1 = require("../lib/db");
+const enums_1 = require("../lib/generated/prisma/enums");
 const DEFAULT_TEMPLATES = [
     {
         slug: "double_definition",
@@ -308,6 +309,135 @@ const DEFAULT_ROADMAP = [
         sortOrder: 30,
     },
 ];
+const DEFAULT_MODULE_CONFIGS = [
+    {
+        id: "viralScorePredictor",
+        name: "Viral Score Predictor",
+        description: "Score post virality probability with factor-level breakdown before publishing.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.starter,
+        isVisible: true,
+        sortOrder: 10,
+        promptHint: "Paste a draft and niche context to get a score breakdown and improvement opportunities.",
+    },
+    {
+        id: "bestTimeToPost",
+        name: "Best Time to Post",
+        description: "Recommend top posting windows using behavior and performance patterns.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.starter,
+        isVisible: true,
+        sortOrder: 20,
+    },
+    {
+        id: "contentPerformancePrediction",
+        name: "Content Performance Prediction",
+        description: "Forecast engagement range and recommend edits to improve expected outcomes.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.starter,
+        isVisible: true,
+        sortOrder: 30,
+    },
+    {
+        id: "viralHookIntelligence",
+        name: "Viral Hook Intelligence Engine",
+        description: "Analyze top niche hooks, score hook quality, and generate A/B hook variants.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.starter,
+        isVisible: true,
+        sortOrder: 40,
+    },
+    {
+        id: "preLaunchOptimizer",
+        name: "Pre-Launch Optimizer",
+        description: "Predict engagement range, optimize CTA, and suggest best posting windows before publishing.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.starter,
+        isVisible: true,
+        sortOrder: 50,
+    },
+    {
+        id: "analytics",
+        name: "Analytics Dashboard",
+        description: "Growth trend graph, hook-type performance, and engagement efficiency metrics on web.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+        isVisible: true,
+        sortOrder: 60,
+    },
+    {
+        id: "nicheTrendRadar",
+        name: "Niche Trend Radar",
+        description: "Track X niche momentum and surface early trend opportunities.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+        isVisible: true,
+        sortOrder: 70,
+    },
+    {
+        id: "growthStrategist",
+        name: "AI Growth Strategist Mode",
+        description: "30-day roadmap, content pillars, hook bank, and competitor-based strategy guidance.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+        isVisible: true,
+        sortOrder: 80,
+    },
+    {
+        id: "brandAnalyzer",
+        name: "AI Personal Brand Analyzer",
+        description: "Brand voice audit, positioning score, bio rewrite, and monetization direction.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+        isVisible: true,
+        sortOrder: 90,
+    },
+    {
+        id: "threadWriterPro",
+        name: "AI Thread Writer Pro+",
+        description: "Story arc, contrarian angle prompts, CTA layering, and monetization insertion.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+        isVisible: true,
+        sortOrder: 100,
+    },
+    {
+        id: "leadMagnetGenerator",
+        name: "Auto Lead Magnet Generator",
+        description: "Convert content into PDFs, checklists, Notion assets, and mini-course outlines.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+        isVisible: true,
+        sortOrder: 110,
+    },
+    {
+        id: "audiencePsychology",
+        name: "Audience Psychology Insights",
+        description: "Identify emotional and authority triggers that drive follows, saves, and replies.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+        isVisible: true,
+        sortOrder: 120,
+    },
+    {
+        id: "repurposingEngine",
+        name: "AI Content Repurposing Engine",
+        description: "Repurpose X threads into LinkedIn posts, carousels, newsletters, and short-video scripts.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+        isVisible: true,
+        sortOrder: 130,
+    },
+    {
+        id: "monetizationToolkit",
+        name: "Creator Monetization Toolkit",
+        description: "Offer ideas, pricing strategy, sales threads, and launch calendar planning.",
+        availability: "live",
+        minimumPlan: enums_1.PlanId.pro,
+        isVisible: true,
+        sortOrder: 140,
+    },
+];
 async function seedRoadmapIfEmpty() {
     if (!(await isTableAvailable("RoadmapItem")))
         return;
@@ -368,6 +498,34 @@ async function seedPromptConfigIfEmpty() {
                 key,
                 value: item.value,
                 description: item.description,
+            })),
+            skipDuplicates: true,
+        });
+    }
+    catch (error) {
+        if (isPrismaUnavailableError(error))
+            return;
+        throw error;
+    }
+}
+async function seedModuleConfigIfEmpty() {
+    if (!(await isTableAvailable("ModuleConfig")))
+        return;
+    try {
+        const count = await db_1.prisma.moduleConfig.count();
+        if (count > 0)
+            return;
+        await db_1.prisma.moduleConfig.createMany({
+            data: DEFAULT_MODULE_CONFIGS.map((row) => ({
+                id: row.id,
+                name: row.name,
+                description: row.description,
+                availability: row.availability,
+                minimumPlan: row.minimumPlan,
+                isVisible: row.isVisible,
+                promptHint: row.promptHint || null,
+                inputHelp: undefined,
+                examples: undefined,
             })),
             skipDuplicates: true,
         });
@@ -572,6 +730,7 @@ async function upsertPromptConfig(key, value, description) {
     });
 }
 async function listModuleConfigs() {
+    await seedModuleConfigIfEmpty();
     if (!(await isTableAvailable("ModuleConfig")))
         return [];
     try {

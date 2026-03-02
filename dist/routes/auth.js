@@ -10,5 +10,6 @@ router.get('/profile', auth_1.authenticate, auth_controller_1.getProfile);
 router.patch('/goal', auth_1.authenticate, auth_controller_1.updateGoal);
 router.post('/api-key', auth_1.authenticate, auth_controller_1.saveApiKey);
 router.delete('/api-key', auth_1.authenticate, auth_controller_1.removeApiKey);
+router.post('/change-password', auth_1.authenticate, auth_controller_1.changePassword);
 router.post("/logout", auth_controller_1.logout);
 exports.default = router;

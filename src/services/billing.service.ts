@@ -107,6 +107,9 @@ export type FeatureCatalogItem = {
   availability: "live" | "coming_soon";
   minimumPlan: PlanId;
   enabled: boolean;
+  promptHint?: string | null;
+  inputHelp?: unknown;
+  examples?: unknown;
 };
 
 const FEATURE_CATALOG: Array<Omit<FeatureCatalogItem, "enabled">> = [
@@ -853,6 +856,9 @@ export async function getFeatureCatalogForPlan(planId: PlanId): Promise<FeatureC
           : feature.availability,
         minimumPlan: override?.minimumPlan || feature.minimumPlan,
         enabled: hasPlanFeature(planId, feature.id),
+        promptHint: override?.promptHint ?? null,
+        inputHelp: override?.inputHelp ?? null,
+        examples: override?.examples ?? null,
       } as FeatureCatalogItem;
     })
     .filter((item): item is FeatureCatalogItem => Boolean(item));

@@ -21,6 +21,13 @@ const loginSchema = z.object({
   email: z.string().email(),
   password: z.string(),
 });
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8).max(128),
+}).refine((v) => v.currentPassword !== v.newPassword, {
+  message: "New password must be different from current password",
+  path: ["newPassword"],
+});
 
 const saveApiKeySchema = z.object({
   provider: z.enum(ALLOWED_AI_PROVIDERS).optional(),
@@ -258,6 +265,40 @@ export async function logout(req: Request, res: Response): Promise<void> {
     httpOnly: true,
     secure: cookieSecure,
     sameSite: cookieSameSite,
+  });
+
+  res.json({ success: true });
+}
+
+export async function changePassword(
+  req: AuthRequest,
+  res: Response,
+): Promise<void> {
+  const parsed = changePasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues });
+    return;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.userId },
+    select: { id: true, password: true },
+  });
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const validCurrent = await bcrypt.compare(parsed.data.currentPassword, user.password);
+  if (!validCurrent) {
+    res.status(401).json({ error: "Current password is incorrect" });
+    return;
+  }
+
+  const hashed = await bcrypt.hash(parsed.data.newPassword, 12);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: hashed },
   });
 
   res.json({ success: true });

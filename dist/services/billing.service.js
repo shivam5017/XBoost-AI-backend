@@ -694,6 +694,9 @@ async function getFeatureCatalogForPlan(planId) {
                 : feature.availability,
             minimumPlan: override?.minimumPlan || feature.minimumPlan,
             enabled: hasPlanFeature(planId, feature.id),
+            promptHint: override?.promptHint ?? null,
+            inputHelp: override?.inputHelp ?? null,
+            examples: override?.examples ?? null,
         };
     })
         .filter((item) => Boolean(item));

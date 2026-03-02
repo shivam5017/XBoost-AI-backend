@@ -64,7 +64,7 @@ function resolveModel(provider: AIProvider): string {
     case "cohere":
       throw new Error("Cohere key detected, but Cohere generation is not enabled in this deployment yet.");
     default:
-      return "gpt-4o-mini";
+      throw new Error(`Unsupported AI provider "${provider}"`);
   }
 }
 
@@ -99,7 +99,11 @@ function getClient(authInput?: AIAuthInput): { client: OpenAI; provider: AIProvi
     };
   }
 
-  return { client: new OpenAI({ apiKey: auth.apiKey }), provider, model };
+  if (provider === "openai" || provider === "chatgpt") {
+    return { client: new OpenAI({ apiKey: auth.apiKey }), provider, model };
+  }
+
+  throw new Error(`Unsupported AI provider "${provider}"`);
 }
 
 function wordCountToTokens(wordCount: number): number {

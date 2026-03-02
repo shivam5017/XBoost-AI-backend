@@ -360,6 +360,145 @@ const DEFAULT_ROADMAP: Array<{
   },
 ];
 
+const DEFAULT_MODULE_CONFIGS: Array<{
+  id: string;
+  name: string;
+  description: string;
+  availability: "live" | "coming_soon";
+  minimumPlan: PlanId;
+  isVisible: boolean;
+  sortOrder: number;
+  promptHint?: string;
+}> = [
+  {
+    id: "viralScorePredictor",
+    name: "Viral Score Predictor",
+    description: "Score post virality probability with factor-level breakdown before publishing.",
+    availability: "live",
+    minimumPlan: PlanId.starter,
+    isVisible: true,
+    sortOrder: 10,
+    promptHint: "Paste a draft and niche context to get a score breakdown and improvement opportunities.",
+  },
+  {
+    id: "bestTimeToPost",
+    name: "Best Time to Post",
+    description: "Recommend top posting windows using behavior and performance patterns.",
+    availability: "live",
+    minimumPlan: PlanId.starter,
+    isVisible: true,
+    sortOrder: 20,
+  },
+  {
+    id: "contentPerformancePrediction",
+    name: "Content Performance Prediction",
+    description: "Forecast engagement range and recommend edits to improve expected outcomes.",
+    availability: "live",
+    minimumPlan: PlanId.starter,
+    isVisible: true,
+    sortOrder: 30,
+  },
+  {
+    id: "viralHookIntelligence",
+    name: "Viral Hook Intelligence Engine",
+    description: "Analyze top niche hooks, score hook quality, and generate A/B hook variants.",
+    availability: "live",
+    minimumPlan: PlanId.starter,
+    isVisible: true,
+    sortOrder: 40,
+  },
+  {
+    id: "preLaunchOptimizer",
+    name: "Pre-Launch Optimizer",
+    description: "Predict engagement range, optimize CTA, and suggest best posting windows before publishing.",
+    availability: "live",
+    minimumPlan: PlanId.starter,
+    isVisible: true,
+    sortOrder: 50,
+  },
+  {
+    id: "analytics",
+    name: "Analytics Dashboard",
+    description: "Growth trend graph, hook-type performance, and engagement efficiency metrics on web.",
+    availability: "live",
+    minimumPlan: PlanId.pro,
+    isVisible: true,
+    sortOrder: 60,
+  },
+  {
+    id: "nicheTrendRadar",
+    name: "Niche Trend Radar",
+    description: "Track X niche momentum and surface early trend opportunities.",
+    availability: "live",
+    minimumPlan: PlanId.pro,
+    isVisible: true,
+    sortOrder: 70,
+  },
+  {
+    id: "growthStrategist",
+    name: "AI Growth Strategist Mode",
+    description: "30-day roadmap, content pillars, hook bank, and competitor-based strategy guidance.",
+    availability: "live",
+    minimumPlan: PlanId.pro,
+    isVisible: true,
+    sortOrder: 80,
+  },
+  {
+    id: "brandAnalyzer",
+    name: "AI Personal Brand Analyzer",
+    description: "Brand voice audit, positioning score, bio rewrite, and monetization direction.",
+    availability: "live",
+    minimumPlan: PlanId.pro,
+    isVisible: true,
+    sortOrder: 90,
+  },
+  {
+    id: "threadWriterPro",
+    name: "AI Thread Writer Pro+",
+    description: "Story arc, contrarian angle prompts, CTA layering, and monetization insertion.",
+    availability: "live",
+    minimumPlan: PlanId.pro,
+    isVisible: true,
+    sortOrder: 100,
+  },
+  {
+    id: "leadMagnetGenerator",
+    name: "Auto Lead Magnet Generator",
+    description: "Convert content into PDFs, checklists, Notion assets, and mini-course outlines.",
+    availability: "live",
+    minimumPlan: PlanId.pro,
+    isVisible: true,
+    sortOrder: 110,
+  },
+  {
+    id: "audiencePsychology",
+    name: "Audience Psychology Insights",
+    description: "Identify emotional and authority triggers that drive follows, saves, and replies.",
+    availability: "live",
+    minimumPlan: PlanId.pro,
+    isVisible: true,
+    sortOrder: 120,
+  },
+  {
+    id: "repurposingEngine",
+    name: "AI Content Repurposing Engine",
+    description: "Repurpose X threads into LinkedIn posts, carousels, newsletters, and short-video scripts.",
+    availability: "live",
+    minimumPlan: PlanId.pro,
+    isVisible: true,
+    sortOrder: 130,
+  },
+  {
+    id: "monetizationToolkit",
+    name: "Creator Monetization Toolkit",
+    description: "Offer ideas, pricing strategy, sales threads, and launch calendar planning.",
+    availability: "live",
+    minimumPlan: PlanId.pro,
+    isVisible: true,
+    sortOrder: 140,
+  },
+];
+
 async function seedRoadmapIfEmpty() {
   if (!(await isTableAvailable("RoadmapItem"))) return;
 
@@ -418,6 +557,33 @@ async function seedPromptConfigIfEmpty() {
         key,
         value: item.value,
         description: item.description,
+      })),
+      skipDuplicates: true,
+    });
+  } catch (error) {
+    if (isPrismaUnavailableError(error)) return;
+    throw error;
+  }
+}
+
+async function seedModuleConfigIfEmpty() {
+  if (!(await isTableAvailable("ModuleConfig"))) return;
+
+  try {
+    const count = await prisma.moduleConfig.count();
+    if (count > 0) return;
+
+    await prisma.moduleConfig.createMany({
+      data: DEFAULT_MODULE_CONFIGS.map((row) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        availability: row.availability,
+        minimumPlan: row.minimumPlan,
+        isVisible: row.isVisible,
+        promptHint: row.promptHint || null,
+        inputHelp: undefined,
+        examples: undefined,
       })),
       skipDuplicates: true,
     });
@@ -640,6 +806,7 @@ export async function upsertPromptConfig(key: string, value: string, description
 }
 
 export async function listModuleConfigs(): Promise<ModuleConfigRecord[]> {
+  await seedModuleConfigIfEmpty();
   if (!(await isTableAvailable("ModuleConfig"))) return [];
 
   try {

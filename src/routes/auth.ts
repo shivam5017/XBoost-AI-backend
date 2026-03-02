@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getProfile, updateGoal, saveApiKey, removeApiKey,logout } from '../controllers/auth.controller';
+import { register, login, getProfile, updateGoal, saveApiKey, removeApiKey, logout, changePassword } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
 
 
@@ -12,6 +12,7 @@ router.get('/profile', authenticate, getProfile);
 router.patch('/goal', authenticate, updateGoal);
 router.post('/api-key', authenticate, saveApiKey);    
 router.delete('/api-key', authenticate, removeApiKey); 
+router.post('/change-password', authenticate, changePassword);
 router.post("/logout", logout);
 
 export default router;

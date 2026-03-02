@@ -5,6 +5,7 @@ exports.syncCheckout = syncCheckout;
 exports.createPortal = createPortal;
 exports.getPlanCatalog = getPlanCatalog;
 exports.getPublicPlanCatalog = getPublicPlanCatalog;
+exports.getPublicFeatureCatalog = getPublicFeatureCatalog;
 exports.getRoadmap = getRoadmap;
 exports.getFeatureCatalog = getFeatureCatalog;
 exports.getSubscription = getSubscription;
@@ -114,6 +115,9 @@ async function getPlanCatalog(_req, res) {
 }
 async function getPublicPlanCatalog(_req, res) {
     return res.json(await (0, billing_service_1.getPlans)());
+}
+async function getPublicFeatureCatalog(_req, res) {
+    return res.json(await (0, billing_service_1.getFeatureCatalogForPlan)(enums_1.PlanId.pro));
 }
 async function getRoadmap(_req, res) {
     return res.json(await (0, catalog_service_1.listRoadmapItems)(false));

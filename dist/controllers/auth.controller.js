@@ -10,6 +10,7 @@ exports.updateGoal = updateGoal;
 exports.saveApiKey = saveApiKey;
 exports.removeApiKey = removeApiKey;
 exports.logout = logout;
+exports.changePassword = changePassword;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const zod_1 = require("zod");
@@ -23,6 +24,13 @@ const registerSchema = zod_1.z.object({
 const loginSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
     password: zod_1.z.string(),
+});
+const changePasswordSchema = zod_1.z.object({
+    currentPassword: zod_1.z.string().min(1),
+    newPassword: zod_1.z.string().min(8).max(128),
+}).refine((v) => v.currentPassword !== v.newPassword, {
+    message: "New password must be different from current password",
+    path: ["newPassword"],
 });
 const saveApiKeySchema = zod_1.z.object({
     provider: zod_1.z.enum(apikey_service_1.ALLOWED_AI_PROVIDERS).optional(),
@@ -217,6 +225,32 @@ async function logout(req, res) {
         httpOnly: true,
         secure: cookieSecure,
         sameSite: cookieSameSite,
+    });
+    res.json({ success: true });
+}
+async function changePassword(req, res) {
+    const parsed = changePasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.issues });
+        return;
+    }
+    const user = await db_1.prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { id: true, password: true },
+    });
+    if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+    }
+    const validCurrent = await bcryptjs_1.default.compare(parsed.data.currentPassword, user.password);
+    if (!validCurrent) {
+        res.status(401).json({ error: "Current password is incorrect" });
+        return;
+    }
+    const hashed = await bcryptjs_1.default.hash(parsed.data.newPassword, 12);
+    await db_1.prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashed },
     });
     res.json({ success: true });
 }
