@@ -807,7 +807,19 @@ export async function upsertPromptConfig(key: string, value: string, description
 
 export async function listModuleConfigs(): Promise<ModuleConfigRecord[]> {
   await seedModuleConfigIfEmpty();
-  if (!(await isTableAvailable("ModuleConfig"))) return [];
+  if (!(await isTableAvailable("ModuleConfig"))) {
+    return DEFAULT_MODULE_CONFIGS.map((row) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      availability: row.availability,
+      minimumPlan: row.minimumPlan,
+      isVisible: row.isVisible,
+      promptHint: row.promptHint || null,
+      inputHelp: null,
+      examples: null,
+    }));
+  }
 
   try {
     return await prisma.moduleConfig.findMany({ orderBy: { id: "asc" } });
