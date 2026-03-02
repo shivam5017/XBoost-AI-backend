@@ -343,9 +343,10 @@ function extractKeywords(text, limit = 8) {
         .slice(0, limit)
         .map(([word]) => word);
 }
-async function jsonModuleCall(systemPrompt, userPrompt, fallback, userApi) {
-    if (!userApi && !process.env.OPENAI_API_KEY) {
-        return { data: fallback, tokens: 0 };
+async function jsonModuleCall(systemPrompt, userPrompt, fallbackOrUserApi, maybeUserApi) {
+    const userApi = (maybeUserApi ?? fallbackOrUserApi);
+    if (!userApi) {
+        throw new Error("No API key connected. Add your API key in Settings to run modules.");
     }
     try {
         const { client: openai, model } = getClient(userApi);
@@ -364,8 +365,8 @@ async function jsonModuleCall(systemPrompt, userPrompt, fallback, userApi) {
             tokens: completion.usage?.total_tokens || 0,
         };
     }
-    catch {
-        return { data: fallback, tokens: 0 };
+    catch (error) {
+        throw new Error(error?.message || "AI module generation failed");
     }
 }
 async function viralHookIntelligence(niche, samplePosts, userApi) {

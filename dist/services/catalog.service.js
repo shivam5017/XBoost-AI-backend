@@ -539,23 +539,7 @@ async function seedModuleConfigIfEmpty() {
 async function getActiveTemplateMap(target = "all") {
     await seedTemplatesIfEmpty();
     if (!(await isTableAvailable("PromptTemplate"))) {
-        return Object.fromEntries(DEFAULT_TEMPLATES
-            .filter((t) => t.isActive !== false)
-            .filter((t) => target === "all" || t.target === "both" || t.target === target)
-            .map((t) => [
-            t.slug,
-            {
-                label: t.label,
-                emoji: t.emoji || "🧩",
-                instruction: [
-                    normalizeMultiline(t.instruction) || "",
-                    normalizeMultiline(t.structure || null) ? `Format style:\n${normalizeMultiline(t.structure || null)}` : "",
-                    normalizeMultiline(t.example || null) ? `Reference example:\n${normalizeMultiline(t.example || null)}` : "",
-                ]
-                    .filter(Boolean)
-                    .join("\n\n"),
-            },
-        ]));
+        return {};
     }
     try {
         const rows = await db_1.prisma.promptTemplate.findMany({
@@ -589,44 +573,15 @@ async function getActiveTemplateMap(target = "all") {
         ]));
     }
     catch (error) {
-        if (isPrismaUnavailableError(error)) {
-            return Object.fromEntries(DEFAULT_TEMPLATES
-                .filter((t) => t.isActive !== false)
-                .filter((t) => target === "all" || t.target === "both" || t.target === target)
-                .map((t) => [
-                t.slug,
-                {
-                    label: t.label,
-                    emoji: t.emoji || "🧩",
-                    instruction: [
-                        normalizeMultiline(t.instruction) || "",
-                        normalizeMultiline(t.structure || null) ? `Format style:\n${normalizeMultiline(t.structure || null)}` : "",
-                        normalizeMultiline(t.example || null) ? `Reference example:\n${normalizeMultiline(t.example || null)}` : "",
-                    ]
-                        .filter(Boolean)
-                        .join("\n\n"),
-                },
-            ]));
-        }
+        if (isPrismaUnavailableError(error))
+            return {};
         throw error;
     }
 }
 async function listTemplates() {
     await seedTemplatesIfEmpty();
     if (!(await isTableAvailable("PromptTemplate"))) {
-        return DEFAULT_TEMPLATES.map((tpl, idx) => ({
-            id: `default-${tpl.slug}-${idx}`,
-            slug: tpl.slug,
-            label: tpl.label,
-            emoji: tpl.emoji || "🧩",
-            instruction: normalizeMultiline(tpl.instruction) || "",
-            structure: normalizeMultiline(tpl.structure || null),
-            example: normalizeMultiline(tpl.example || null),
-            category: tpl.category || "general",
-            target: tpl.target || "both",
-            isActive: tpl.isActive ?? true,
-            sortOrder: tpl.sortOrder ?? 0,
-        }));
+        return [];
     }
     try {
         const rows = await db_1.prisma.promptTemplate.findMany({
@@ -685,7 +640,7 @@ async function deleteTemplate(slug) {
 async function getPromptConfigMap() {
     await seedPromptConfigIfEmpty();
     if (!(await isTableAvailable("PromptConfig"))) {
-        return Object.fromEntries(Object.entries(DEFAULT_PROMPT_CONFIG).map(([key, value]) => [key, value.value]));
+        return {};
     }
     try {
         const rows = await db_1.prisma.promptConfig.findMany({ orderBy: { key: "asc" } });
@@ -695,20 +650,15 @@ async function getPromptConfigMap() {
         return Object.fromEntries(rows.map((row) => [row.key, row.value]));
     }
     catch (error) {
-        if (isPrismaUnavailableError(error)) {
-            return Object.fromEntries(Object.entries(DEFAULT_PROMPT_CONFIG).map(([key, value]) => [key, value.value]));
-        }
+        if (isPrismaUnavailableError(error))
+            return {};
         throw error;
     }
 }
 async function listPromptConfigs() {
     await seedPromptConfigIfEmpty();
     if (!(await isTableAvailable("PromptConfig"))) {
-        return Object.entries(DEFAULT_PROMPT_CONFIG).map(([key, item]) => ({
-            key,
-            value: item.value,
-            description: item.description,
-        }));
+        return [];
     }
     try {
         return await db_1.prisma.promptConfig.findMany({ orderBy: { key: "asc" } });
@@ -732,17 +682,7 @@ async function upsertPromptConfig(key, value, description) {
 async function listModuleConfigs() {
     await seedModuleConfigIfEmpty();
     if (!(await isTableAvailable("ModuleConfig"))) {
-        return DEFAULT_MODULE_CONFIGS.map((row) => ({
-            id: row.id,
-            name: row.name,
-            description: row.description,
-            availability: row.availability,
-            minimumPlan: row.minimumPlan,
-            isVisible: row.isVisible,
-            promptHint: row.promptHint || null,
-            inputHelp: null,
-            examples: null,
-        }));
+        return [];
     }
     try {
         return await db_1.prisma.moduleConfig.findMany({ orderBy: { id: "asc" } });
@@ -789,7 +729,7 @@ async function upsertModuleConfig(featureId, input) {
 async function listRoadmapItems(includeInactive = false) {
     await seedRoadmapIfEmpty();
     if (!(await isTableAvailable("RoadmapItem"))) {
-        return includeInactive ? DEFAULT_ROADMAP : DEFAULT_ROADMAP.filter((item) => item.isActive);
+        return [];
     }
     try {
         return await db_1.prisma.roadmapItem.findMany({
@@ -798,9 +738,8 @@ async function listRoadmapItems(includeInactive = false) {
         });
     }
     catch (error) {
-        if (isPrismaUnavailableError(error)) {
-            return includeInactive ? DEFAULT_ROADMAP : DEFAULT_ROADMAP.filter((item) => item.isActive);
-        }
+        if (isPrismaUnavailableError(error))
+            return [];
         throw error;
     }
 }

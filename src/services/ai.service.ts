@@ -415,14 +415,15 @@ function extractKeywords(text: string, limit = 8): string[] {
     .map(([word]) => word);
 }
 
-async function jsonModuleCall<T>(
+async function jsonModuleCall<T extends Record<string, any>>(
   systemPrompt: string,
   userPrompt: string,
-  fallback: T,
-  userApi?: AIAuthInput,
+  fallbackOrUserApi?: unknown,
+  maybeUserApi?: AIAuthInput,
 ): Promise<{ data: T; tokens: number }> {
-  if (!userApi && !process.env.OPENAI_API_KEY) {
-    return { data: fallback, tokens: 0 };
+  const userApi = (maybeUserApi ?? fallbackOrUserApi) as AIAuthInput;
+  if (!userApi) {
+    throw new Error("No API key connected. Add your API key in Settings to run modules.");
   }
 
   try {
@@ -442,8 +443,8 @@ async function jsonModuleCall<T>(
       data: JSON.parse(raw) as T,
       tokens: completion.usage?.total_tokens || 0,
     };
-  } catch {
-    return { data: fallback, tokens: 0 };
+  } catch (error: any) {
+    throw new Error(error?.message || "AI module generation failed");
   }
 }
 

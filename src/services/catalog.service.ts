@@ -597,25 +597,7 @@ export async function getActiveTemplateMap(target: TemplateTarget | "all" = "all
   await seedTemplatesIfEmpty();
 
   if (!(await isTableAvailable("PromptTemplate"))) {
-    return Object.fromEntries(
-      DEFAULT_TEMPLATES
-        .filter((t) => t.isActive !== false)
-        .filter((t) => target === "all" || t.target === "both" || t.target === target)
-        .map((t) => [
-          t.slug,
-          {
-            label: t.label,
-            emoji: t.emoji || "🧩",
-            instruction: [
-              normalizeMultiline(t.instruction) || "",
-              normalizeMultiline(t.structure || null) ? `Format style:\n${normalizeMultiline(t.structure || null)}` : "",
-              normalizeMultiline(t.example || null) ? `Reference example:\n${normalizeMultiline(t.example || null)}` : "",
-            ]
-              .filter(Boolean)
-              .join("\n\n"),
-          },
-        ]),
-    );
+    return {};
   }
 
   try {
@@ -652,27 +634,7 @@ export async function getActiveTemplateMap(target: TemplateTarget | "all" = "all
       ]),
     );
   } catch (error) {
-    if (isPrismaUnavailableError(error)) {
-      return Object.fromEntries(
-        DEFAULT_TEMPLATES
-          .filter((t) => t.isActive !== false)
-          .filter((t) => target === "all" || t.target === "both" || t.target === target)
-          .map((t) => [
-            t.slug,
-            {
-              label: t.label,
-              emoji: t.emoji || "🧩",
-              instruction: [
-                normalizeMultiline(t.instruction) || "",
-                normalizeMultiline(t.structure || null) ? `Format style:\n${normalizeMultiline(t.structure || null)}` : "",
-                normalizeMultiline(t.example || null) ? `Reference example:\n${normalizeMultiline(t.example || null)}` : "",
-              ]
-                .filter(Boolean)
-                .join("\n\n"),
-            },
-          ]),
-      );
-    }
+    if (isPrismaUnavailableError(error)) return {};
     throw error;
   }
 }
@@ -681,19 +643,7 @@ export async function listTemplates(): Promise<PromptTemplateRecord[]> {
   await seedTemplatesIfEmpty();
 
   if (!(await isTableAvailable("PromptTemplate"))) {
-    return DEFAULT_TEMPLATES.map((tpl, idx) => ({
-      id: `default-${tpl.slug}-${idx}`,
-      slug: tpl.slug,
-      label: tpl.label,
-      emoji: tpl.emoji || "🧩",
-      instruction: normalizeMultiline(tpl.instruction) || "",
-      structure: normalizeMultiline(tpl.structure || null),
-      example: normalizeMultiline(tpl.example || null),
-      category: tpl.category || "general",
-      target: tpl.target || "both",
-      isActive: tpl.isActive ?? true,
-      sortOrder: tpl.sortOrder ?? 0,
-    }));
+    return [];
   }
 
   try {
@@ -756,7 +706,7 @@ export async function getPromptConfigMap(): Promise<Record<string, string>> {
   await seedPromptConfigIfEmpty();
 
   if (!(await isTableAvailable("PromptConfig"))) {
-    return Object.fromEntries(Object.entries(DEFAULT_PROMPT_CONFIG).map(([key, value]) => [key, value.value]));
+    return {};
   }
 
   try {
@@ -767,9 +717,7 @@ export async function getPromptConfigMap(): Promise<Record<string, string>> {
 
     return Object.fromEntries(rows.map((row) => [row.key, row.value]));
   } catch (error) {
-    if (isPrismaUnavailableError(error)) {
-      return Object.fromEntries(Object.entries(DEFAULT_PROMPT_CONFIG).map(([key, value]) => [key, value.value]));
-    }
+    if (isPrismaUnavailableError(error)) return {};
     throw error;
   }
 }
@@ -778,11 +726,7 @@ export async function listPromptConfigs(): Promise<Array<{ key: string; value: s
   await seedPromptConfigIfEmpty();
 
   if (!(await isTableAvailable("PromptConfig"))) {
-    return Object.entries(DEFAULT_PROMPT_CONFIG).map(([key, item]) => ({
-      key,
-      value: item.value,
-      description: item.description,
-    }));
+    return [];
   }
 
   try {
@@ -808,17 +752,7 @@ export async function upsertPromptConfig(key: string, value: string, description
 export async function listModuleConfigs(): Promise<ModuleConfigRecord[]> {
   await seedModuleConfigIfEmpty();
   if (!(await isTableAvailable("ModuleConfig"))) {
-    return DEFAULT_MODULE_CONFIGS.map((row) => ({
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      availability: row.availability,
-      minimumPlan: row.minimumPlan,
-      isVisible: row.isVisible,
-      promptHint: row.promptHint || null,
-      inputHelp: null,
-      examples: null,
-    }));
+    return [];
   }
 
   try {
@@ -881,7 +815,7 @@ export async function listRoadmapItems(includeInactive = false) {
   await seedRoadmapIfEmpty();
 
   if (!(await isTableAvailable("RoadmapItem"))) {
-    return includeInactive ? DEFAULT_ROADMAP : DEFAULT_ROADMAP.filter((item) => item.isActive);
+    return [];
   }
 
   try {
@@ -890,9 +824,7 @@ export async function listRoadmapItems(includeInactive = false) {
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     });
   } catch (error) {
-    if (isPrismaUnavailableError(error)) {
-      return includeInactive ? DEFAULT_ROADMAP : DEFAULT_ROADMAP.filter((item) => item.isActive);
-    }
+    if (isPrismaUnavailableError(error)) return [];
     throw error;
   }
 }
