@@ -15,6 +15,12 @@ const streak_1 = __importDefault(require("./routes/streak"));
 const reply_1 = __importDefault(require("./routes/reply"));
 const billing_1 = __importDefault(require("./routes/billing"));
 const admin_1 = __importDefault(require("./routes/admin"));
+const logger_middleware_1 = require("./middleware/logger.middleware");
+const request_timeout_middleware_1 = require("./middleware/request-timeout.middleware");
+const db_guard_middleware_1 = require("./middleware/db-guard.middleware");
+const error_middleware_1 = require("./middleware/error.middleware");
+const db_resilience_1 = require("./lib/db-resilience");
+const db_1 = require("./lib/db");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4500;
@@ -81,6 +87,9 @@ app.options(/.*/, (0, cors_1.default)(corsOptions));
 /* ───────── RAW BODY FOR BILLING WEBHOOK ───────── */
 app.use("/billing/webhook", express_1.default.raw({ type: "application/json" }));
 /* ───────────────── MIDDLEWARE ───────────────── */
+app.use(logger_middleware_1.requestLogger);
+app.use(request_timeout_middleware_1.requestTimeout);
+app.use(db_guard_middleware_1.dbTrafficGuard);
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json());
 /* ───────────────── RATE LIMIT ───────────────── */
@@ -99,9 +108,20 @@ app.use("/streak", streak_1.default);
 app.use("/reply", reply_1.default);
 app.use("/billing", billing_1.default);
 app.use("/admin", admin_1.default);
-app.get("/health", (_req, res) => {
-    res.json({ status: "ok" });
+app.get("/health", async (_req, res) => {
+    const [db, pool] = await Promise.all([(0, db_1.pingDatabase)(), Promise.resolve((0, db_1.getDbPoolStats)())]);
+    const circuit = (0, db_resilience_1.dbCircuitSnapshot)();
+    const status = db.ok ? "ok" : "degraded";
+    res.status(db.ok ? 200 : 503).json({
+        status,
+        uptimeSec: Math.round(process.uptime()),
+        db,
+        pool,
+        circuit,
+        connection: db_1.dbConnectionConfig,
+    });
 });
+app.use(error_middleware_1.errorHandler);
 /* ───────────────── START SERVER ───────────────── */
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);

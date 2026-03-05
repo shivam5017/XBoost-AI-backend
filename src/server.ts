@@ -11,6 +11,12 @@ import streakRoutes from "./routes/streak";
 import replyRoutes from "./routes/reply";
 import billingRoutes from "./routes/billing";
 import adminRoutes from "./routes/admin";
+import { requestLogger } from "./middleware/logger.middleware";
+import { requestTimeout } from "./middleware/request-timeout.middleware";
+import { dbTrafficGuard } from "./middleware/db-guard.middleware";
+import { errorHandler } from "./middleware/error.middleware";
+import { dbCircuitSnapshot } from "./lib/db-resilience";
+import { dbConnectionConfig, getDbPoolStats, pingDatabase } from "./lib/db";
 
 dotenv.config();
 
@@ -95,6 +101,9 @@ app.use("/billing/webhook", express.raw({ type: "application/json" }));
 
 /* ───────────────── MIDDLEWARE ───────────────── */
 
+app.use(requestLogger);
+app.use(requestTimeout);
+app.use(dbTrafficGuard);
 app.use(cookieParser());
 app.use(express.json());
 
@@ -120,9 +129,22 @@ app.use("/reply", replyRoutes);
 app.use("/billing", billingRoutes);
 app.use("/admin", adminRoutes);
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
+app.get("/health", async (_req, res) => {
+  const [db, pool] = await Promise.all([pingDatabase(), Promise.resolve(getDbPoolStats())]);
+  const circuit = dbCircuitSnapshot();
+
+  const status = db.ok ? "ok" : "degraded";
+  res.status(db.ok ? 200 : 503).json({
+    status,
+    uptimeSec: Math.round(process.uptime()),
+    db,
+    pool,
+    circuit,
+    connection: dbConnectionConfig,
+  });
 });
+
+app.use(errorHandler);
 
 /* ───────────────── START SERVER ───────────────── */
 

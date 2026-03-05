@@ -7,6 +7,7 @@ import { consumeDailyReplyQuota, consumeDailyTweetQuota } from '../services/usag
 import { readTimezoneFromRequest, startOfDayUtcForTimezone } from '../utils/timezone';
 import { AIProvider, getPrimaryProviderApiKey } from "../services/apikey.service";
 import { hasFeatureAccess, FeatureId } from "../services/billing.service";
+import { enqueueNonCriticalTask } from "../lib/task-queue";
 
 type UserAIAuth = {
   provider: AIProvider;
@@ -24,6 +25,12 @@ async function getUserApiAuth(userId: string): Promise<UserAIAuth | null> {
 
 async function trackUsage(userId: string, endpoint: string, tokens: number): Promise<void> {
   await prisma.aIUsage.create({ data: { userId, endpoint, tokens } });
+}
+
+function trackUsageAsync(userId: string, endpoint: string, tokens: number): void {
+  enqueueNonCriticalTask(`track-usage:${endpoint}`, async () => {
+    await trackUsage(userId, endpoint, tokens);
+  });
 }
 
 async function requireFeature(
@@ -104,6 +111,16 @@ async function updateDailyStats(
   });
 }
 
+function updateDailyStatsAsync(
+  userId: string,
+  increment: "generated" | "posted",
+  timeZone = "UTC",
+): void {
+  enqueueNonCriticalTask(`daily-stats:${increment}`, async () => {
+    await updateDailyStats(userId, increment, timeZone);
+  });
+}
+
 // ── POST /ai/reply ────────────────────────────────────────────────────────────
 // ── POST /ai/reply ────────────────────────────────────────────────────────────
 export async function generateReply(req: AuthRequest, res: Response): Promise<void> {
@@ -149,9 +166,7 @@ export async function generateReply(req: AuthRequest, res: Response): Promise<vo
       }),
     ]);
     replyId = createdReply.id;
-    updateDailyStats(req.userId!, 'generated', timeZone).catch((dbErr) => {
-      console.error('[/ai/reply] dailyStats error (non-fatal):', dbErr.message);
-    });
+    updateDailyStatsAsync(req.userId!, 'generated', timeZone);
   } catch (dbErr: any) {
     console.error('[/ai/reply] DB write error (non-fatal):', dbErr.message);
   }
@@ -177,9 +192,7 @@ export async function analyzeTweet(req: AuthRequest, res: Response): Promise<voi
     return;
   }
 
-  trackUsage(req.userId!, '/ai/analyze', tokens).catch((dbErr) => {
-    console.error('[/ai/analyze] DB write error (non-fatal):', dbErr.message);
-  });
+  trackUsageAsync(req.userId!, '/ai/analyze', tokens);
 
   res.json(analysis);
 }
@@ -229,9 +242,7 @@ export async function createTweet(req: AuthRequest, res: Response): Promise<void
       }),
     ]);
     replyId = createdReply.id;
-    updateDailyStats(req.userId!, 'generated', timeZone).catch((dbErr) => {
-      console.error('[/ai/create] dailyStats error (non-fatal):', dbErr.message);
-    });
+    updateDailyStatsAsync(req.userId!, 'generated', timeZone);
   } catch (dbErr: any) {
     console.error('[/ai/create] DB write error (non-fatal):', dbErr.message);
   }
@@ -257,9 +268,7 @@ export async function rewriteTweet(req: AuthRequest, res: Response): Promise<voi
     return;
   }
 
-  trackUsage(req.userId!, '/ai/rewrite', tokens).catch((dbErr) => {
-    console.error('[/ai/rewrite] DB write error (non-fatal):', dbErr.message);
-  });
+  trackUsageAsync(req.userId!, '/ai/rewrite', tokens);
 
   res.json({ rewrite, tone });
 }
@@ -275,9 +284,7 @@ export async function markPosted(req: AuthRequest, res: Response): Promise<void>
       where: { id: replyId, userId: req.userId },
       data: { posted: true },
     });
-    updateDailyStats(req.userId!, 'posted', timeZone).catch((dbErr) => {
-      console.error('[/ai/mark-posted] DB write error (non-fatal):', dbErr.message);
-    });
+    updateDailyStatsAsync(req.userId!, 'posted', timeZone);
     res.json({ success: true });
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'Failed to mark as posted' });
@@ -317,7 +324,7 @@ export async function viralHookIntel(req: AuthRequest, res: Response): Promise<v
     posts,
     userApi,
   );
-  await trackUsage(req.userId!, "/ai/viral-hook-intel", tokens);
+  trackUsageAsync(req.userId!, "/ai/viral-hook-intel", tokens);
   res.json(analysis);
 }
 
@@ -339,7 +346,7 @@ export async function preLaunchOptimize(req: AuthRequest, res: Response): Promis
     bestHours,
     userApi,
   );
-  await trackUsage(req.userId!, "/ai/prelaunch-optimize", tokens);
+  trackUsageAsync(req.userId!, "/ai/prelaunch-optimize", tokens);
   res.json(analysis);
 }
 
@@ -353,7 +360,7 @@ export async function viralScore(req: AuthRequest, res: Response): Promise<void>
   const userApi = await requireConnectedApi(req, res);
   if (!userApi) return;
   const { analysis, tokens } = await AIService.viralScorePredictor(String(draft), String(niche || "general growth"), userApi);
-  await trackUsage(req.userId!, "/ai/viral-score", tokens);
+  trackUsageAsync(req.userId!, "/ai/viral-score", tokens);
   res.json(analysis);
 }
 
@@ -368,7 +375,7 @@ export async function bestTimePost(req: AuthRequest, res: Response): Promise<voi
   if (!userApi) return;
   const bestHours = await bestPostingHoursForUser(req.userId!);
   const { analysis, tokens } = await AIService.bestTimeToPost(String(niche), bestHours, userApi);
-  await trackUsage(req.userId!, "/ai/best-time-post", tokens);
+  trackUsageAsync(req.userId!, "/ai/best-time-post", tokens);
   res.json(analysis);
 }
 
@@ -388,7 +395,7 @@ export async function contentPredict(req: AuthRequest, res: Response): Promise<v
     bestHours,
     userApi,
   );
-  await trackUsage(req.userId!, "/ai/content-predict", tokens);
+  trackUsageAsync(req.userId!, "/ai/content-predict", tokens);
   res.json(analysis);
 }
 
@@ -402,7 +409,7 @@ export async function trendRadar(req: AuthRequest, res: Response): Promise<void>
   const userApi = await requireConnectedApi(req, res);
   if (!userApi) return;
   const { analysis, tokens } = await AIService.nicheTrendRadar(String(niche), userApi);
-  await trackUsage(req.userId!, "/ai/trend-radar", tokens);
+  trackUsageAsync(req.userId!, "/ai/trend-radar", tokens);
   res.json(analysis);
 }
 
@@ -416,7 +423,7 @@ export async function growthStrategist(req: AuthRequest, res: Response): Promise
   const userApi = await requireConnectedApi(req, res);
   if (!userApi) return;
   const { analysis, tokens } = await AIService.growthStrategistMode(String(niche), String(goals || "Audience growth"), userApi);
-  await trackUsage(req.userId!, "/ai/growth-strategist", tokens);
+  trackUsageAsync(req.userId!, "/ai/growth-strategist", tokens);
   res.json(analysis);
 }
 
@@ -431,7 +438,7 @@ export async function brandAnalyzer(req: AuthRequest, res: Response): Promise<vo
   if (!userApi) return;
   const list = Array.isArray(tweets) ? tweets.slice(0, 20).map(String) : [];
   const { analysis, tokens } = await AIService.personalBrandAnalyzer(String(profile), list, userApi);
-  await trackUsage(req.userId!, "/ai/brand-analyzer", tokens);
+  trackUsageAsync(req.userId!, "/ai/brand-analyzer", tokens);
   res.json(analysis);
 }
 
@@ -445,7 +452,7 @@ export async function threadWriterPro(req: AuthRequest, res: Response): Promise<
   const userApi = await requireConnectedApi(req, res);
   if (!userApi) return;
   const { analysis, tokens } = await AIService.threadWriterPro(String(topic), String(objective || "Engagement + conversion"), userApi);
-  await trackUsage(req.userId!, "/ai/thread-pro", tokens);
+  trackUsageAsync(req.userId!, "/ai/thread-pro", tokens);
   res.json(analysis);
 }
 
@@ -459,7 +466,7 @@ export async function leadMagnet(req: AuthRequest, res: Response): Promise<void>
   const userApi = await requireConnectedApi(req, res);
   if (!userApi) return;
   const { analysis, tokens } = await AIService.leadMagnetGenerator(String(content), String(audience || "creators"), userApi);
-  await trackUsage(req.userId!, "/ai/lead-magnet", tokens);
+  trackUsageAsync(req.userId!, "/ai/lead-magnet", tokens);
   res.json(analysis);
 }
 
@@ -473,7 +480,7 @@ export async function audiencePsychology(req: AuthRequest, res: Response): Promi
   const userApi = await requireConnectedApi(req, res);
   if (!userApi) return;
   const { analysis, tokens } = await AIService.audiencePsychologyInsights(String(niche), String(audience || "creators on X"), userApi);
-  await trackUsage(req.userId!, "/ai/audience-psychology", tokens);
+  trackUsageAsync(req.userId!, "/ai/audience-psychology", tokens);
   res.json(analysis);
 }
 
@@ -487,7 +494,7 @@ export async function repurposeContent(req: AuthRequest, res: Response): Promise
   const userApi = await requireConnectedApi(req, res);
   if (!userApi) return;
   const { analysis, tokens } = await AIService.repurposingEngine(String(source), userApi);
-  await trackUsage(req.userId!, "/ai/repurpose", tokens);
+  trackUsageAsync(req.userId!, "/ai/repurpose", tokens);
   res.json(analysis);
 }
 
@@ -501,6 +508,6 @@ export async function monetizationToolkit(req: AuthRequest, res: Response): Prom
   const userApi = await requireConnectedApi(req, res);
   if (!userApi) return;
   const { analysis, tokens } = await AIService.monetizationToolkit(String(niche), String(audience || "creator audience"), userApi);
-  await trackUsage(req.userId!, "/ai/monetization-toolkit", tokens);
+  trackUsageAsync(req.userId!, "/ai/monetization-toolkit", tokens);
   res.json(analysis);
 }

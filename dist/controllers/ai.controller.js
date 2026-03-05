@@ -61,6 +61,7 @@ const usage_service_1 = require("../services/usage.service");
 const timezone_1 = require("../utils/timezone");
 const apikey_service_1 = require("../services/apikey.service");
 const billing_service_1 = require("../services/billing.service");
+const task_queue_1 = require("../lib/task-queue");
 async function getUserApiAuth(userId) {
     const user = await db_1.prisma.user.findUnique({
         where: { id: userId },
@@ -72,6 +73,11 @@ async function getUserApiAuth(userId) {
 }
 async function trackUsage(userId, endpoint, tokens) {
     await db_1.prisma.aIUsage.create({ data: { userId, endpoint, tokens } });
+}
+function trackUsageAsync(userId, endpoint, tokens) {
+    (0, task_queue_1.enqueueNonCriticalTask)(`track-usage:${endpoint}`, async () => {
+        await trackUsage(userId, endpoint, tokens);
+    });
 }
 async function requireFeature(req, res, featureId) {
     const allowed = await (0, billing_service_1.hasFeatureAccess)(req.userId, featureId);
@@ -135,6 +141,11 @@ async function updateDailyStats(userId, increment, timeZone = "UTC") {
         },
     });
 }
+function updateDailyStatsAsync(userId, increment, timeZone = "UTC") {
+    (0, task_queue_1.enqueueNonCriticalTask)(`daily-stats:${increment}`, async () => {
+        await updateDailyStats(userId, increment, timeZone);
+    });
+}
 // ── POST /ai/reply ────────────────────────────────────────────────────────────
 // ── POST /ai/reply ────────────────────────────────────────────────────────────
 async function generateReply(req, res) {
@@ -181,9 +192,7 @@ async function generateReply(req, res) {
             }),
         ]);
         replyId = createdReply.id;
-        updateDailyStats(req.userId, 'generated', timeZone).catch((dbErr) => {
-            console.error('[/ai/reply] dailyStats error (non-fatal):', dbErr.message);
-        });
+        updateDailyStatsAsync(req.userId, 'generated', timeZone);
     }
     catch (dbErr) {
         console.error('[/ai/reply] DB write error (non-fatal):', dbErr.message);
@@ -210,9 +219,7 @@ async function analyzeTweet(req, res) {
         res.status(400).json({ error: err.message || 'Failed to analyze tweet' });
         return;
     }
-    trackUsage(req.userId, '/ai/analyze', tokens).catch((dbErr) => {
-        console.error('[/ai/analyze] DB write error (non-fatal):', dbErr.message);
-    });
+    trackUsageAsync(req.userId, '/ai/analyze', tokens);
     res.json(analysis);
 }
 // ── POST /ai/create ───────────────────────────────────────────────────────────
@@ -261,9 +268,7 @@ async function createTweet(req, res) {
             }),
         ]);
         replyId = createdReply.id;
-        updateDailyStats(req.userId, 'generated', timeZone).catch((dbErr) => {
-            console.error('[/ai/create] dailyStats error (non-fatal):', dbErr.message);
-        });
+        updateDailyStatsAsync(req.userId, 'generated', timeZone);
     }
     catch (dbErr) {
         console.error('[/ai/create] DB write error (non-fatal):', dbErr.message);
@@ -290,9 +295,7 @@ async function rewriteTweet(req, res) {
         res.status(400).json({ error: err.message || 'Failed to rewrite tweet' });
         return;
     }
-    trackUsage(req.userId, '/ai/rewrite', tokens).catch((dbErr) => {
-        console.error('[/ai/rewrite] DB write error (non-fatal):', dbErr.message);
-    });
+    trackUsageAsync(req.userId, '/ai/rewrite', tokens);
     res.json({ rewrite, tone });
 }
 // ── POST /ai/mark-posted ──────────────────────────────────────────────────────
@@ -308,9 +311,7 @@ async function markPosted(req, res) {
             where: { id: replyId, userId: req.userId },
             data: { posted: true },
         });
-        updateDailyStats(req.userId, 'posted', timeZone).catch((dbErr) => {
-            console.error('[/ai/mark-posted] DB write error (non-fatal):', dbErr.message);
-        });
+        updateDailyStatsAsync(req.userId, 'posted', timeZone);
         res.json({ success: true });
     }
     catch (err) {
@@ -343,7 +344,7 @@ async function viralHookIntel(req, res) {
         return;
     const posts = Array.isArray(samplePosts) ? samplePosts.slice(0, 20).map(String) : [];
     const { analysis, tokens } = await AIService.viralHookIntelligence(niche.trim(), posts, userApi);
-    await trackUsage(req.userId, "/ai/viral-hook-intel", tokens);
+    trackUsageAsync(req.userId, "/ai/viral-hook-intel", tokens);
     res.json(analysis);
 }
 async function preLaunchOptimize(req, res) {
@@ -359,7 +360,7 @@ async function preLaunchOptimize(req, res) {
         return;
     const bestHours = await bestPostingHoursForUser(req.userId);
     const { analysis, tokens } = await AIService.preLaunchOptimizer(String(draft), String(niche || "general growth"), bestHours, userApi);
-    await trackUsage(req.userId, "/ai/prelaunch-optimize", tokens);
+    trackUsageAsync(req.userId, "/ai/prelaunch-optimize", tokens);
     res.json(analysis);
 }
 async function viralScore(req, res) {
@@ -374,7 +375,7 @@ async function viralScore(req, res) {
     if (!userApi)
         return;
     const { analysis, tokens } = await AIService.viralScorePredictor(String(draft), String(niche || "general growth"), userApi);
-    await trackUsage(req.userId, "/ai/viral-score", tokens);
+    trackUsageAsync(req.userId, "/ai/viral-score", tokens);
     res.json(analysis);
 }
 async function bestTimePost(req, res) {
@@ -390,7 +391,7 @@ async function bestTimePost(req, res) {
         return;
     const bestHours = await bestPostingHoursForUser(req.userId);
     const { analysis, tokens } = await AIService.bestTimeToPost(String(niche), bestHours, userApi);
-    await trackUsage(req.userId, "/ai/best-time-post", tokens);
+    trackUsageAsync(req.userId, "/ai/best-time-post", tokens);
     res.json(analysis);
 }
 async function contentPredict(req, res) {
@@ -406,7 +407,7 @@ async function contentPredict(req, res) {
         return;
     const bestHours = await bestPostingHoursForUser(req.userId);
     const { analysis, tokens } = await AIService.contentPerformancePrediction(String(draft), String(niche || "general growth"), bestHours, userApi);
-    await trackUsage(req.userId, "/ai/content-predict", tokens);
+    trackUsageAsync(req.userId, "/ai/content-predict", tokens);
     res.json(analysis);
 }
 async function trendRadar(req, res) {
@@ -421,7 +422,7 @@ async function trendRadar(req, res) {
     if (!userApi)
         return;
     const { analysis, tokens } = await AIService.nicheTrendRadar(String(niche), userApi);
-    await trackUsage(req.userId, "/ai/trend-radar", tokens);
+    trackUsageAsync(req.userId, "/ai/trend-radar", tokens);
     res.json(analysis);
 }
 async function growthStrategist(req, res) {
@@ -436,7 +437,7 @@ async function growthStrategist(req, res) {
     if (!userApi)
         return;
     const { analysis, tokens } = await AIService.growthStrategistMode(String(niche), String(goals || "Audience growth"), userApi);
-    await trackUsage(req.userId, "/ai/growth-strategist", tokens);
+    trackUsageAsync(req.userId, "/ai/growth-strategist", tokens);
     res.json(analysis);
 }
 async function brandAnalyzer(req, res) {
@@ -452,7 +453,7 @@ async function brandAnalyzer(req, res) {
         return;
     const list = Array.isArray(tweets) ? tweets.slice(0, 20).map(String) : [];
     const { analysis, tokens } = await AIService.personalBrandAnalyzer(String(profile), list, userApi);
-    await trackUsage(req.userId, "/ai/brand-analyzer", tokens);
+    trackUsageAsync(req.userId, "/ai/brand-analyzer", tokens);
     res.json(analysis);
 }
 async function threadWriterPro(req, res) {
@@ -467,7 +468,7 @@ async function threadWriterPro(req, res) {
     if (!userApi)
         return;
     const { analysis, tokens } = await AIService.threadWriterPro(String(topic), String(objective || "Engagement + conversion"), userApi);
-    await trackUsage(req.userId, "/ai/thread-pro", tokens);
+    trackUsageAsync(req.userId, "/ai/thread-pro", tokens);
     res.json(analysis);
 }
 async function leadMagnet(req, res) {
@@ -482,7 +483,7 @@ async function leadMagnet(req, res) {
     if (!userApi)
         return;
     const { analysis, tokens } = await AIService.leadMagnetGenerator(String(content), String(audience || "creators"), userApi);
-    await trackUsage(req.userId, "/ai/lead-magnet", tokens);
+    trackUsageAsync(req.userId, "/ai/lead-magnet", tokens);
     res.json(analysis);
 }
 async function audiencePsychology(req, res) {
@@ -497,7 +498,7 @@ async function audiencePsychology(req, res) {
     if (!userApi)
         return;
     const { analysis, tokens } = await AIService.audiencePsychologyInsights(String(niche), String(audience || "creators on X"), userApi);
-    await trackUsage(req.userId, "/ai/audience-psychology", tokens);
+    trackUsageAsync(req.userId, "/ai/audience-psychology", tokens);
     res.json(analysis);
 }
 async function repurposeContent(req, res) {
@@ -512,7 +513,7 @@ async function repurposeContent(req, res) {
     if (!userApi)
         return;
     const { analysis, tokens } = await AIService.repurposingEngine(String(source), userApi);
-    await trackUsage(req.userId, "/ai/repurpose", tokens);
+    trackUsageAsync(req.userId, "/ai/repurpose", tokens);
     res.json(analysis);
 }
 async function monetizationToolkit(req, res) {
@@ -527,6 +528,6 @@ async function monetizationToolkit(req, res) {
     if (!userApi)
         return;
     const { analysis, tokens } = await AIService.monetizationToolkit(String(niche), String(audience || "creator audience"), userApi);
-    await trackUsage(req.userId, "/ai/monetization-toolkit", tokens);
+    trackUsageAsync(req.userId, "/ai/monetization-toolkit", tokens);
     res.json(analysis);
 }
