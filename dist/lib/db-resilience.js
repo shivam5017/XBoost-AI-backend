@@ -11,6 +11,7 @@ exports.withDbTimeout = withDbTimeout;
 const FAILURE_THRESHOLD = parseEnvInt("DB_BREAKER_FAILURE_THRESHOLD", 8);
 const OPEN_MS = parseEnvInt("DB_BREAKER_OPEN_MS", 20000);
 const HALF_OPEN_SUCCESS_THRESHOLD = parseEnvInt("DB_BREAKER_HALF_OPEN_SUCCESS_THRESHOLD", 2);
+const CIRCUIT_ENABLED = process.env.DB_CIRCUIT_ENABLED === "true";
 let circuitState = "closed";
 let consecutiveFailures = 0;
 let openUntilEpochMs = 0;
@@ -51,6 +52,8 @@ function isTransientDbError(error) {
         message.includes("connection terminated unexpectedly"));
 }
 function canServeDbTraffic() {
+    if (!CIRCUIT_ENABLED)
+        return true;
     if (circuitState === "closed")
         return true;
     if (circuitState === "open") {
@@ -63,6 +66,8 @@ function canServeDbTraffic() {
     return true;
 }
 function markDbSuccess() {
+    if (!CIRCUIT_ENABLED)
+        return;
     if (circuitState === "half_open") {
         halfOpenSuccesses += 1;
         if (halfOpenSuccesses >= HALF_OPEN_SUCCESS_THRESHOLD) {
@@ -77,6 +82,8 @@ function markDbSuccess() {
     consecutiveFailures = 0;
 }
 function markDbFailure(error) {
+    if (!CIRCUIT_ENABLED)
+        return;
     // Do not count synthetic "circuit already open" errors as fresh failures.
     if (error instanceof DatabaseUnavailableError)
         return;
@@ -99,6 +106,13 @@ function markDbFailure(error) {
     }
 }
 function dbCircuitSnapshot() {
+    if (!CIRCUIT_ENABLED) {
+        return {
+            state: "closed",
+            consecutiveFailures: 0,
+            retryAfterMs: 0,
+        };
+    }
     return {
         state: circuitState,
         consecutiveFailures,

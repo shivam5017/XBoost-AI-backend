@@ -13,6 +13,7 @@ const HALF_OPEN_SUCCESS_THRESHOLD = parseEnvInt(
   "DB_BREAKER_HALF_OPEN_SUCCESS_THRESHOLD",
   2,
 );
+const CIRCUIT_ENABLED = process.env.DB_CIRCUIT_ENABLED === "true";
 
 let circuitState: CircuitState = "closed";
 let consecutiveFailures = 0;
@@ -61,6 +62,7 @@ export function isTransientDbError(error: unknown): boolean {
 }
 
 export function canServeDbTraffic(): boolean {
+  if (!CIRCUIT_ENABLED) return true;
   if (circuitState === "closed") return true;
 
   if (circuitState === "open") {
@@ -74,6 +76,7 @@ export function canServeDbTraffic(): boolean {
 }
 
 export function markDbSuccess(): void {
+  if (!CIRCUIT_ENABLED) return;
   if (circuitState === "half_open") {
     halfOpenSuccesses += 1;
     if (halfOpenSuccesses >= HALF_OPEN_SUCCESS_THRESHOLD) {
@@ -90,6 +93,7 @@ export function markDbSuccess(): void {
 }
 
 export function markDbFailure(error: unknown): void {
+  if (!CIRCUIT_ENABLED) return;
   // Do not count synthetic "circuit already open" errors as fresh failures.
   if (error instanceof DatabaseUnavailableError) return;
   if (!isTransientDbError(error)) return;
@@ -117,6 +121,13 @@ export function dbCircuitSnapshot(): {
   consecutiveFailures: number;
   retryAfterMs: number;
 } {
+  if (!CIRCUIT_ENABLED) {
+    return {
+      state: "closed",
+      consecutiveFailures: 0,
+      retryAfterMs: 0,
+    };
+  }
   return {
     state: circuitState,
     consecutiveFailures,
