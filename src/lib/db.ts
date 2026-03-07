@@ -131,7 +131,9 @@ export async function pingDatabase(): Promise<{ ok: boolean; latencyMs: number; 
     );
     return { ok: true, latencyMs: Date.now() - started };
   } catch (error: any) {
-    markDbFailure(error);
+    if (!(error instanceof DatabaseUnavailableError)) {
+      markDbFailure(error);
+    }
     return {
       ok: false,
       latencyMs: Date.now() - started,

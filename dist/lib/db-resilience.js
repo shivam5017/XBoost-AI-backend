@@ -77,7 +77,13 @@ function markDbSuccess() {
     consecutiveFailures = 0;
 }
 function markDbFailure(error) {
+    // Do not count synthetic "circuit already open" errors as fresh failures.
+    if (error instanceof DatabaseUnavailableError)
+        return;
     if (!isTransientDbError(error))
+        return;
+    // When already open, do not keep extending cooldown on every request.
+    if (circuitState === "open")
         return;
     if (circuitState === "half_open") {
         circuitState = "open";

@@ -104,7 +104,9 @@ async function pingDatabase() {
         return { ok: true, latencyMs: Date.now() - started };
     }
     catch (error) {
-        (0, db_resilience_1.markDbFailure)(error);
+        if (!(error instanceof db_resilience_1.DatabaseUnavailableError)) {
+            (0, db_resilience_1.markDbFailure)(error);
+        }
         return {
             ok: false,
             latencyMs: Date.now() - started,

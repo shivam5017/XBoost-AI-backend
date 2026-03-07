@@ -10,7 +10,9 @@ export function errorHandler(
   console.error(`[Error] ${err.message}`, err.stack);
 
   if (err instanceof DatabaseUnavailableError || isTransientDbError(err)) {
-    markDbFailure(err);
+    if (!(err instanceof DatabaseUnavailableError)) {
+      markDbFailure(err);
+    }
     const snapshot = dbCircuitSnapshot();
     res.status(503).json({
       error: "Database is temporarily unavailable. Please retry shortly.",
