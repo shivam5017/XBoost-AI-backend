@@ -42,9 +42,19 @@ const pool = new pg_1.default.Pool({
     min: parseIntEnv("PGPOOL_MIN", 1),
     idleTimeoutMillis: parseIntEnv("PGPOOL_IDLE_TIMEOUT_MS", 10000),
     connectionTimeoutMillis: parseIntEnv("PGPOOL_CONN_TIMEOUT_MS", 10000),
+    keepAlive: true,
+    keepAliveInitialDelayMillis: parseIntEnv("PGPOOL_KEEPALIVE_INITIAL_DELAY_MS", 10000),
     allowExitOnIdle: true,
 });
 pool.on("error", (err) => {
+    const message = String(err?.message || "");
+    const isRecoverableIdleDrop = message.includes("Connection terminated unexpectedly") ||
+        message.includes("terminating connection due to administrator command");
+    if (isRecoverableIdleDrop) {
+        // Neon/pgBouncer can occasionally recycle idle sockets; pool will reconnect on demand.
+        console.warn("PostgreSQL pool warning (recoverable):", message);
+        return;
+    }
     console.error("PostgreSQL pool error:", err);
     (0, db_resilience_1.markDbFailure)(err);
 });
