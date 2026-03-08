@@ -10,7 +10,6 @@ const client_1 = require("../lib/generated/prisma/client");
 const adapter_pg_1 = require("@prisma/adapter-pg");
 const pg_1 = __importDefault(require("pg"));
 require("dotenv/config");
-const db_resilience_1 = require("./db-resilience");
 const globalForPrisma = global;
 const pooledDatabaseUrl = process.env.DATABASE_URL_POOLER || process.env.NEON_POOLER_DATABASE_URL;
 const directDatabaseUrl = process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL;
@@ -56,17 +55,14 @@ pool.on("error", (err) => {
         return;
     }
     console.error("PostgreSQL pool error:", err);
-    (0, db_resilience_1.markDbFailure)(err);
 });
 // Test connection on startup
 pool.connect((err, client, release) => {
     if (err) {
         console.error("❌ Database connection failed:", err.message);
-        (0, db_resilience_1.markDbFailure)(err);
     }
     else {
         console.log("✅ Database connected successfully");
-        (0, db_resilience_1.markDbSuccess)();
         release();
     }
 });
@@ -75,29 +71,8 @@ const basePrisma = new client_1.PrismaClient({
     adapter,
     log: ["error", "warn"],
 });
-const dbQueryTimeoutMs = parseIntEnv("DB_QUERY_TIMEOUT_MS", 8000);
-const dbRetryAttempts = parseIntEnv("DB_RETRY_ATTEMPTS", 3);
-const resilientPrisma = basePrisma.$extends({
-    query: {
-        $allOperations: async ({ model, operation, args, query }) => {
-            if (!(0, db_resilience_1.canServeDbTraffic)()) {
-                throw new db_resilience_1.DatabaseUnavailableError("Database temporarily overloaded");
-            }
-            const label = `${model || "raw"}.${operation}`;
-            try {
-                const result = await (0, db_resilience_1.withDbRetry)(() => (0, db_resilience_1.withDbTimeout)(query(args), dbQueryTimeoutMs, label), { attempts: dbRetryAttempts, label });
-                (0, db_resilience_1.markDbSuccess)();
-                return result;
-            }
-            catch (error) {
-                (0, db_resilience_1.markDbFailure)(error);
-                throw error;
-            }
-        },
-    },
-});
 exports.prisma = globalForPrisma.prisma ||
-    resilientPrisma;
+    basePrisma;
 if (process.env.NODE_ENV !== "production")
     globalForPrisma.prisma = exports.prisma;
 function getDbPoolStats() {
@@ -110,13 +85,10 @@ function getDbPoolStats() {
 async function pingDatabase() {
     const started = Date.now();
     try {
-        await (0, db_resilience_1.withDbRetry)(() => (0, db_resilience_1.withDbTimeout)(exports.prisma.$queryRawUnsafe("SELECT 1"), dbQueryTimeoutMs, "health.ping"), { attempts: 2, label: "health.ping" });
+        await exports.prisma.$queryRawUnsafe("SELECT 1");
         return { ok: true, latencyMs: Date.now() - started };
     }
     catch (error) {
-        if (!(error instanceof db_resilience_1.DatabaseUnavailableError)) {
-            (0, db_resilience_1.markDbFailure)(error);
-        }
         return {
             ok: false,
             latencyMs: Date.now() - started,

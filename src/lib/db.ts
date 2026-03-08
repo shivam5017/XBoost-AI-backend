@@ -2,14 +2,6 @@ import { PrismaClient } from "../lib/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 import 'dotenv/config'; 
-import {
-  canServeDbTraffic,
-  DatabaseUnavailableError,
-  markDbFailure,
-  markDbSuccess,
-  withDbRetry,
-  withDbTimeout,
-} from "./db-resilience";
 
 const globalForPrisma = global as unknown as {
   prisma: PrismaClient;
@@ -69,17 +61,14 @@ pool.on("error", (err) => {
   }
 
   console.error("PostgreSQL pool error:", err);
-  markDbFailure(err);
 });
 
 // Test connection on startup
 pool.connect((err, client, release) => {
   if (err) {
     console.error("❌ Database connection failed:", err.message);
-    markDbFailure(err);
   } else {
     console.log("✅ Database connected successfully");
-    markDbSuccess();
     release();
   }
 });
@@ -91,35 +80,9 @@ const basePrisma = new PrismaClient({
   log: ["error", "warn"],
 });
 
-const dbQueryTimeoutMs = parseIntEnv("DB_QUERY_TIMEOUT_MS", 8_000);
-const dbRetryAttempts = parseIntEnv("DB_RETRY_ATTEMPTS", 3);
-
-const resilientPrisma = (basePrisma as any).$extends({
-  query: {
-    $allOperations: async ({ model, operation, args, query }: any) => {
-      if (!canServeDbTraffic()) {
-        throw new DatabaseUnavailableError("Database temporarily overloaded");
-      }
-
-      const label = `${model || "raw"}.${operation}`;
-      try {
-        const result = await withDbRetry(
-          () => withDbTimeout(query(args), dbQueryTimeoutMs, label),
-          { attempts: dbRetryAttempts, label },
-        );
-        markDbSuccess();
-        return result;
-      } catch (error) {
-        markDbFailure(error);
-        throw error;
-      }
-    },
-  },
-}) as PrismaClient;
-
 export const prisma =
   globalForPrisma.prisma ||
-  resilientPrisma;
+  basePrisma;
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
@@ -138,15 +101,9 @@ export function getDbPoolStats(): {
 export async function pingDatabase(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
   const started = Date.now();
   try {
-    await withDbRetry(
-      () => withDbTimeout(prisma.$queryRawUnsafe("SELECT 1"), dbQueryTimeoutMs, "health.ping"),
-      { attempts: 2, label: "health.ping" },
-    );
+    await prisma.$queryRawUnsafe("SELECT 1");
     return { ok: true, latencyMs: Date.now() - started };
   } catch (error: any) {
-    if (!(error instanceof DatabaseUnavailableError)) {
-      markDbFailure(error);
-    }
     return {
       ok: false,
       latencyMs: Date.now() - started,

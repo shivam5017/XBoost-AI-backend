@@ -18,7 +18,6 @@ const admin_1 = __importDefault(require("./routes/admin"));
 const logger_middleware_1 = require("./middleware/logger.middleware");
 const request_timeout_middleware_1 = require("./middleware/request-timeout.middleware");
 const error_middleware_1 = require("./middleware/error.middleware");
-const db_resilience_1 = require("./lib/db-resilience");
 const db_1 = require("./lib/db");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -108,14 +107,12 @@ app.use("/billing", billing_1.default);
 app.use("/admin", admin_1.default);
 app.get("/health", async (_req, res) => {
     const [db, pool] = await Promise.all([(0, db_1.pingDatabase)(), Promise.resolve((0, db_1.getDbPoolStats)())]);
-    const circuit = (0, db_resilience_1.dbCircuitSnapshot)();
     const status = db.ok ? "ok" : "degraded";
     res.status(db.ok ? 200 : 503).json({
         status,
         uptimeSec: Math.round(process.uptime()),
         db,
         pool,
-        circuit,
         connection: db_1.dbConnectionConfig,
     });
 });
