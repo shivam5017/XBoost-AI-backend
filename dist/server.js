@@ -17,7 +17,6 @@ const billing_1 = __importDefault(require("./routes/billing"));
 const admin_1 = __importDefault(require("./routes/admin"));
 const logger_middleware_1 = require("./middleware/logger.middleware");
 const request_timeout_middleware_1 = require("./middleware/request-timeout.middleware");
-const db_guard_middleware_1 = require("./middleware/db-guard.middleware");
 const error_middleware_1 = require("./middleware/error.middleware");
 const db_resilience_1 = require("./lib/db-resilience");
 const db_1 = require("./lib/db");
@@ -89,7 +88,6 @@ app.use("/billing/webhook", express_1.default.raw({ type: "application/json" }))
 /* ───────────────── MIDDLEWARE ───────────────── */
 app.use(logger_middleware_1.requestLogger);
 app.use(request_timeout_middleware_1.requestTimeout);
-app.use(db_guard_middleware_1.dbTrafficGuard);
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json());
 /* ───────────────── RATE LIMIT ───────────────── */

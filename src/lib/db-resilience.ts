@@ -30,6 +30,16 @@ export class DatabaseUnavailableError extends Error {
   }
 }
 
+export class DatabaseTimeoutError extends Error {
+  status = 504 as const;
+  code = "DB_TIMEOUT" as const;
+
+  constructor(message = "Database request timed out") {
+    super(message);
+    this.name = "DatabaseTimeoutError";
+  }
+}
+
 function parseEnvInt(key: string, fallback: number): number {
   const raw = process.env[key];
   if (!raw) return fallback;
@@ -45,7 +55,7 @@ export function isTransientDbError(error: unknown): boolean {
   const code = String((error as any)?.code || "");
   const message = String((error as any)?.message || "").toLowerCase();
 
-  if (error instanceof DatabaseUnavailableError) return true;
+  if (error instanceof DatabaseUnavailableError || error instanceof DatabaseTimeoutError) return true;
 
   const transientCodes = new Set(["P1001", "P1002", "P1017", "P2024"]);
   if (transientCodes.has(code)) return true;
@@ -179,7 +189,7 @@ export async function withDbTimeout<T>(
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutHandle = setTimeout(() => {
-      reject(new DatabaseUnavailableError(`Database timeout: ${label}`));
+      reject(new DatabaseTimeoutError(`Database timeout: ${label}`));
     }, timeoutMs);
   });
 

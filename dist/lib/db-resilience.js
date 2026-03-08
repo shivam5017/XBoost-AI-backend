@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DatabaseUnavailableError = void 0;
+exports.DatabaseTimeoutError = exports.DatabaseUnavailableError = void 0;
 exports.isTransientDbError = isTransientDbError;
 exports.canServeDbTraffic = canServeDbTraffic;
 exports.markDbSuccess = markDbSuccess;
@@ -25,6 +25,15 @@ class DatabaseUnavailableError extends Error {
     }
 }
 exports.DatabaseUnavailableError = DatabaseUnavailableError;
+class DatabaseTimeoutError extends Error {
+    constructor(message = "Database request timed out") {
+        super(message);
+        this.status = 504;
+        this.code = "DB_TIMEOUT";
+        this.name = "DatabaseTimeoutError";
+    }
+}
+exports.DatabaseTimeoutError = DatabaseTimeoutError;
 function parseEnvInt(key, fallback) {
     const raw = process.env[key];
     if (!raw)
@@ -38,7 +47,7 @@ function sleep(ms) {
 function isTransientDbError(error) {
     const code = String(error?.code || "");
     const message = String(error?.message || "").toLowerCase();
-    if (error instanceof DatabaseUnavailableError)
+    if (error instanceof DatabaseUnavailableError || error instanceof DatabaseTimeoutError)
         return true;
     const transientCodes = new Set(["P1001", "P1002", "P1017", "P2024"]);
     if (transientCodes.has(code))
@@ -149,7 +158,7 @@ async function withDbTimeout(operation, timeoutMs, label) {
     let timeoutHandle;
     const timeoutPromise = new Promise((_, reject) => {
         timeoutHandle = setTimeout(() => {
-            reject(new DatabaseUnavailableError(`Database timeout: ${label}`));
+            reject(new DatabaseTimeoutError(`Database timeout: ${label}`));
         }, timeoutMs);
     });
     try {

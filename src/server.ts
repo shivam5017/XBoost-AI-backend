@@ -13,7 +13,6 @@ import billingRoutes from "./routes/billing";
 import adminRoutes from "./routes/admin";
 import { requestLogger } from "./middleware/logger.middleware";
 import { requestTimeout } from "./middleware/request-timeout.middleware";
-import { dbTrafficGuard } from "./middleware/db-guard.middleware";
 import { errorHandler } from "./middleware/error.middleware";
 import { dbCircuitSnapshot } from "./lib/db-resilience";
 import { dbConnectionConfig, getDbPoolStats, pingDatabase } from "./lib/db";
@@ -103,7 +102,6 @@ app.use("/billing/webhook", express.raw({ type: "application/json" }));
 
 app.use(requestLogger);
 app.use(requestTimeout);
-app.use(dbTrafficGuard);
 app.use(cookieParser());
 app.use(express.json());
 
